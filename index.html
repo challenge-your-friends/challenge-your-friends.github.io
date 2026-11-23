@@ -95,6 +95,10 @@ input.txt{width:100%;padding:12px;border-radius:10px;border:1px solid #333;backg
 #exd{display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:9}#exd h2{font-size:22px;margin:4px 0 6px}#exd h4{font-size:15px;margin:16px 0 6px;color:var(--acc)}#exd li{font-size:15px;line-height:1.5;color:#ddd;margin-bottom:4px}#exd ul,#exd ol{padding-left:20px}#exd .sk{max-width:380px}#exd .key{background:#173a26;color:#c9f5dc;border-radius:12px;padding:12px;font-size:15px;line-height:1.45;margin-top:10px}
 #runSk{cursor:pointer}.skhint{font-size:12px;color:var(--mut);margin-top:-2px}
 select.txt{appearance:auto}
+.pvd{margin:0 0 12px;border:1px solid #333;border-radius:10px;padding:10px 12px}.pvd summary{cursor:pointer;font-weight:700}
+.pvg label{display:block}.pvg select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff;font-size:17px;margin:4px 0 12px}
+.pvg2{display:flex;gap:10px}.pvg2>div{flex:1;min-width:0}
+.pvt{width:100%;border-collapse:collapse;font-size:15px}.pvt td{padding:6px 4px;border-bottom:1px solid #2a2e37}.pvt td:not(:first-child){text-align:right}
 .fbta{width:100%;min-height:110px;padding:10px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff;font-size:16px;margin-bottom:8px;font-family:inherit;resize:vertical}
 #fbKind .chip,#svNote .chip,#svDone .chip,#svAmt .chip,#svHard .chip,#svEasy .chip{margin:0 6px 6px 0}
 .note{color:var(--mut);font-size:13px;line-height:1.4}
@@ -134,7 +138,8 @@ select.txt{appearance:auto}
   <div id="tab-more" style="display:none">
   <button class="wbtn" id="bHelp" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">❓ Anleitung &amp; Übungen</b><span>Regeln, Punkte, alle Übungen erklärt</span></button>
   <button class="wbtn" id="bFb" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">💬 Feedback &amp; Fragen</b><span>Idee, Problem, Frage oder Lob – geht direkt an Max</span></button>
-  <button class="wbtn" id="bSingle"style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🎯 Einzelne Übung starten</b><span>zum Testen &amp; Üben – zählt nicht für Punkte</span></button>
+  <button class="wbtn" id="bPv" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🔒 Meine Werte</b><span>Gewicht, Bauchumfang, Plank-Bestzeit – nur für dich sichtbar</span></button>
+  <button class="wbtn" id="bSingle" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🎯 Einzelne Übung starten</b><span>zum Testen &amp; Üben – zählt nicht für Punkte</span></button>
   <button class="wbtn" id="bRem" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🔔 Erinnerungen</b><span>Mails (keine, 1 oder 2 pro Tag) &amp; Kalender-Alarm zur Wunschzeit</span></button>
   <button class="wbtn" id="bAcc" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">⚙️ Mein Konto</b><span>Abmelden</span></button>
   <div class="card">
@@ -190,6 +195,11 @@ select.txt{appearance:auto}
 <label>PIN (4 Ziffern)</label><input class="txt" id="lgPin" maxlength="4" inputmode="numeric" type="password" autocomplete="current-password" placeholder="••••">
 <div id="regExtra" style="display:none"><label>E-Mail für Erinnerungen (optional)</label><input class="txt" id="lgMail" type="email" placeholder="name@beispiel.de">
 <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="lgOk" style="margin-top:3px"><span>Ich bin einverstanden, dass Benutzername, Trainingsdaten und ggf. E-Mail für dieses private Ranking gespeichert werden. Löschen jederzeit auf Zuruf bei Max.</span></label></div>
+<details id="pvReg" class="pvd"><summary>🔒 Freiwillige Angaben – nur für dich</summary>
+<p class="note" style="margin-top:6px">Wird nur auf deinem Handy gespeichert, nicht auf dem Server. Niemand sonst sieht das – auch Max nicht. Später unter „Mehr“ → „🔒 Meine Werte“ ergänzen und vergleichen.</p>
+<div class="pvg"><label>Geschlecht</label><select class="txt" id="rgSex"><option value="">keine Angabe</option><option value="m">Mann</option><option value="w">Frau</option><option value="d">divers</option></select></div>
+<div class="pvg2"><div><label>Größe (cm)</label><input class="txt" id="rgH" inputmode="numeric" maxlength="3" placeholder="z. B. 180"></div><div><label>Startgewicht (kg)</label><input class="txt" id="rgW0" inputmode="decimal" maxlength="5" placeholder="z. B. 85"></div></div>
+<div class="pvg2"><div><label>Zielgewicht (kg)</label><input class="txt" id="rgWz" inputmode="decimal" maxlength="5" placeholder="optional"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="rgB0" inputmode="decimal" maxlength="5" placeholder="optional"></div></div></details>
 <div id="lgErr" style="color:var(--bad);font-size:14px;min-height:20px;margin-bottom:8px"></div>
 <button class="wbtn" id="lgGo" style="text-align:center;background:var(--acc);color:#000;margin:0"><b>Anmelden</b></button>
 </div><p class="note">PIN vergessen? Bei Max melden.</p></div></div>
@@ -233,6 +243,20 @@ select.txt{appearance:auto}
 <div class="card"><label>Was gefällt dir, was nervt, was fehlt? Hast du Fragen?</label><textarea id="svTxt" maxlength="1000" class="fbta" style="margin-top:8px" placeholder="z. B. Stimme, Musik, Mails, Punkte, Ideen …"></textarea></div>
 <div id="svMsg" style="font-size:14px;min-height:20px;margin-bottom:8px;color:var(--mut)"></div>
 <button class="wbtn" id="svSend" style="text-align:center;background:var(--acc);color:#000"><b>Umfrage absenden</b></button>
+</div></div>
+<div id="pv" style="display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:8"><div style="max-width:480px;margin:0 auto">
+<div class="row" style="justify-content:space-between"><h1>🔒 Meine Werte</h1><button class="chip" id="pvX">Schließen ✕</button></div>
+<p class="sub">Nur auf diesem Handy gespeichert – niemand sonst sieht das, auch Max nicht. Alles freiwillig.</p>
+<div class="card" id="pvSum"></div>
+<div class="card"><h3>📏 Start</h3><div class="pvg"><label>Geschlecht</label><select class="txt" id="pvSex"><option value="">keine Angabe</option><option value="m">Mann</option><option value="w">Frau</option><option value="d">divers</option></select></div>
+<div class="pvg2"><div><label>Größe (cm)</label><input class="txt" id="pvH" inputmode="numeric" maxlength="3" placeholder="z. B. 180"></div><div><label>Startgewicht (kg)</label><input class="txt" id="pvW0" inputmode="decimal" maxlength="5" placeholder="z. B. 85"></div></div>
+<div class="pvg2"><div><label>Zielgewicht (kg)</label><input class="txt" id="pvWz" inputmode="decimal" maxlength="5" placeholder="optional"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="pvB0" inputmode="decimal" maxlength="5" placeholder="optional"></div></div><label>Plank-Bestzeit am Start (Sekunden)</label><input class="txt" id="pvP0" inputmode="numeric" maxlength="4" placeholder="optional, z. B. 60"></div>
+<div class="card"><h3>📈 Neuer Messwert</h3><p class="note" style="margin-top:0">Am besten 1× pro Woche, morgens nüchtern, gleiche Waage.</p>
+<div class="pvg2"><div><label>Gewicht (kg)</label><input class="txt" id="pvNW" inputmode="decimal" maxlength="5"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="pvNB" inputmode="decimal" maxlength="5"></div></div>
+<label>Plank-Bestzeit (Sekunden)</label><input class="txt" id="pvNP" inputmode="numeric" maxlength="4">
+<button class="wbtn" id="pvAdd" style="text-align:center;background:var(--acc);color:#000;margin:0"><b>Messwert speichern</b></button><div id="pvMsg" class="note" style="min-height:18px"></div></div>
+<div class="card"><h3>🗓️ Verlauf</h3><div id="pvLog"></div></div>
+<p class="note">Tipp: Halteübungen bauen vor allem Kraft auf – das Gewicht ändert sich oft nur wenig. Bauchumfang und Plank-Bestzeit zeigen den Fortschritt meist besser.<br>Achtung: Bei Handywechsel oder gelöschten Browserdaten sind die Werte weg.</p>
 </div></div>
 <div id="pick" style="display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:8"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>🎯 Einzelne Übung</h1><button class="chip" id="pickX">Schließen ✕</button></div><p class="sub">Antippen = starten. ℹ️ = Erklärung. Zählt nicht für Punkte.</p><div class="exl" id="pickList"></div></div></div>
 <div id="exd"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><span class="note">Übung</span><button class="chip" id="exdX">Zurück ✕</button></div><div id="exdBody"></div><button class="wbtn" id="exdX2" style="text-align:center;margin-top:16px"><b>Verstanden 👍</b></button></div></div>
@@ -333,7 +357,7 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 let state={days:{},ms:[],ch:{},name:"",start:""};
 // Umzug: Anmeldung von der alten Adresse mitnehmen (#t=… im Link), danach aus der Adresszeile entfernen
 const NEW_URL="https://challenge-your-friends.github.io/",OLD_SITE=location.host==="bobby983983.github.io";
-try{const m=location.hash.match(/^#t=([\w-]+)$/);if(m){lsSet("token",m[1]);history.replaceState(null,"",location.pathname+location.search)}}catch(e){}
+try{const m=location.hash.match(/^#t=([\w-]+)(?:&p=([^&]+))?$/);if(m){lsSet("token",m[1]);if(m[2]){const o=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[2])))));Object.keys(o).forEach(k=>{if(/^pv_/.test(k)&&!ls(k,null))lsSet(k,o[k])})}history.replaceState(null,"",location.pathname+location.search)}}catch(e){}
 let token=ls("token",""),email="",mp=2,others=[],online=false;
 state=Object.assign(state,ls("state",{}));
 async function api(a,body){
@@ -387,6 +411,7 @@ $("lgGo").onclick=async()=>{
     if(regMode&&!r.ok&&/vergeben/.test(r.err||"")){r=await api("login",{name,pin});if(!r.ok)r={ok:false,err:"Name ist schon vergeben – falls du das bist: PIN prüfen und oben auf „Anmelden“ tippen."}}
     if(!r.ok){$("lgErr").textContent=(!regMode&&/falsch/.test(r.err||""))?"Name oder PIN falsch. Noch nicht registriert? Oben auf „Registrieren“ tippen.":(r.err||"Fehler");return}
     lsSet("hadLogin",1);
+    if(regMode)pvFromForm("rg",name);
     token=r.token;lsSet("token",token);$("login").style.display="none";if(regMode||!ls("helpSeen",0))showHelp();applyServer(r);online=true;setSync("☁️ synchronisiert");loadRank();
   }catch(e){$("lgErr").textContent="Keine Verbindung zum Server"}
 };
@@ -455,7 +480,7 @@ function renderMenu(){
   else if(tw)b="Heute dran: <b>"+W[tw].t+"</b> – noch offen."+(email&&mp?" Um 18 Uhr kommt sonst eine Mail.":"");
   else{cls="good";b="😴 Sonntag = Ruhetag. Freiwilliges Workout gibt +1."}
   if(XMAS(t))b+=" 🎄 Heute doppelte Punkte!";
-  if(OLD_SITE&&t>="2026-11-30"){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token):"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
+  if(OLD_SITE&&t>="2026-11-30"){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token)+pvHash():"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
   if(t<CH_START)b+=' <span style="opacity:.75">· 🧪 Testphase bis 30.11., am 1.12. starten alle bei 0.</span>';
   let svb=(t>="2026-11-30"&&t<="2026-12-07"&&!ls("svDone",0))?'<div class="banner info" id="svBan" style="cursor:pointer">📝 <b>Kurze Umfrage zur Testphase</b> (2 Min.) – welche Übungen sind zu schwer, zu leicht? Hier antippen.</div>':"";
   $("banners").innerHTML='<div class="banner '+cls+'">'+b+'</div>'+svb;
@@ -1057,6 +1082,38 @@ $("bRem").onclick=()=>{if(!token){showLogin();return}mpSel=mp;renderMp();$("remM
 $("remX").onclick=()=>$("rem").style.display="none";
 $("remSave").onclick=async()=>{const m=$("remMail").value.trim();if(mpSel&&!m){$("remMsg").textContent="Bitte E-Mail-Adresse eintragen – oder „keine“ wählen.";return}
   try{const r=await api("email",{token,email:m,mp:mpSel});if(r.ok){email=r.email;mp=mpSel;$("remMsg").textContent="✅ Gespeichert";renderMenu()}else $("remMsg").textContent=r.err||"Fehler"}catch(e){$("remMsg").textContent="Keine Verbindung"}};
+// ---------- Meine Werte (nur lokal auf dem Handy) ----------
+function pvKey(n){return "pv_"+String(n||state.name||"").trim().toLowerCase()}
+function pvGet(n){return ls(pvKey(n),null)||{log:[]}}
+function pvSet(o,n){lsSet(pvKey(n),o)}
+function num(v){v=String(v||"").replace(",",".").trim();const x=parseFloat(v);return isFinite(x)&&x>0?Math.round(x*10)/10:null}
+function pvFromForm(px,n){const o=pvGet(n);o.sex=$(px+"Sex").value;["H","W0","Wz","B0"].forEach(k=>{o[k.toLowerCase()]=num($(px+k).value)});
+  if($(px+"P0"))o.p0=num($(px+"P0").value);if(!o.d0&&(o.w0||o.b0||o.h||o.p0))o.d0=todayK();o.log=o.log||[];pvSet(o,n);return o}
+function pvHash(){try{const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^pv_/.test(k))o[k]=ls(k,null)}if(!Object.keys(o).length)return"";return"&p="+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(o)))))}catch(e){return""}}
+const f1=x=>x==null?"–":String(x).replace(".",",");
+function pvDiff(a,b,u,goodDown){if(a==null||b==null)return"";const d=Math.round((b-a)*10)/10;if(!d)return' <span class="note">(±0)</span>';const good=goodDown?d<0:d>0;return' <b style="color:var(--'+(good?"acc":"warn")+')">('+(d>0?"+":"−")+f1(Math.abs(d))+" "+u+")</b>"}
+function pvRender(){const o=pvGet(),L=o.log||[],last=k=>{for(let i=L.length-1;i>=0;i--)if(L[i][k]!=null)return L[i][k];return null};
+  ["Sex","H","W0","Wz","B0","P0"].forEach(k=>{const v=o[k==="Sex"?"sex":k.toLowerCase()];$("pv"+k).value=v==null?"":String(v).replace(".",",")});
+  const w=last("w"),b=last("b"),pl=last("p");let s="<h3>📊 Vorher – Nachher</h3>";
+  if(!o.w0&&!o.b0&&!o.p0&&!L.length)s+='<p class="note" style="margin:0">Noch keine Werte. Trag unten deine Startwerte ein – dann siehst du hier deinen Fortschritt.</p>';
+  else{s+='<table class="pvt"><tr><td></td><td>Start</td><td>Aktuell</td></tr>'+
+    '<tr><td>⚖️ Gewicht</td><td>'+f1(o.w0)+' kg</td><td>'+f1(w)+' kg'+pvDiff(o.w0,w,"kg",o.wz==null||o.w0==null||o.wz<o.w0)+'</td></tr>'+
+    '<tr><td>📏 Bauch</td><td>'+f1(o.b0)+' cm</td><td>'+f1(b)+' cm'+pvDiff(o.b0,b,"cm",true)+'</td></tr>'+
+    '<tr><td>⏱️ Plank</td><td>'+f1(o.p0)+' s</td><td>'+f1(pl)+' s'+pvDiff(o.p0,pl,"s",false)+'</td></tr></table>';
+    const cw=w!=null?w:o.w0;
+    if(o.wz&&cw)s+='<p class="note" style="margin:8px 0 0">🎯 Ziel '+f1(o.wz)+' kg – '+(Math.abs(cw-o.wz)<0.25?"erreicht! 🎉":"noch "+f1(Math.round(Math.abs(cw-o.wz)*10)/10)+" kg")+'</p>';
+    if(o.h&&cw)s+='<p class="note" style="margin:4px 0 0">BMI: '+f1(Math.round(cw/((o.h/100)**2)*10)/10)+' (bei viel Muskeln nur grob aussagekräftig)</p>'}
+  $("pvSum").innerHTML=s;
+  $("pvLog").innerHTML=L.length?'<table class="pvt">'+L.slice().reverse().map((e,i)=>'<tr><td>'+e.d.split("-").reverse().slice(0,2).join(".")+'</td><td>'+(e.w!=null?f1(e.w)+" kg":"")+'</td><td>'+(e.b!=null?f1(e.b)+" cm":"")+'</td><td>'+(e.p!=null?f1(e.p)+" s":"")+'</td><td><button class="chip" data-i="'+(L.length-1-i)+'" style="padding:2px 8px">✕</button></td></tr>').join("")+'</table>':'<p class="note" style="margin:0">Noch keine Messwerte.</p>';
+  $("pvLog").querySelectorAll("button[data-i]").forEach(bt=>bt.onclick=()=>{const o2=pvGet();o2.log.splice(+bt.dataset.i,1);pvSet(o2);pvRender()})}
+$("bPv").onclick=()=>{$("pvMsg").textContent="";["pvNW","pvNB","pvNP"].forEach(i=>$(i).value="");pvRender();$("pv").style.display="block";$("pv").scrollTop=0};
+$("pvX").onclick=()=>$("pv").style.display="none";
+["pvSex","pvH","pvW0","pvWz","pvB0","pvP0"].forEach(i=>$(i).onchange=()=>{pvFromForm("pv");pvRender()});
+$("pvAdd").onclick=()=>{const e={d:todayK(),w:num($("pvNW").value),b:num($("pvNB").value),p:num($("pvNP").value)};
+  if(e.w==null&&e.b==null&&e.p==null){$("pvMsg").textContent="Bitte mindestens einen Wert eintragen.";return}
+  const o=pvGet();o.log=(o.log||[]).filter(x=>x.d!==e.d);o.log.push(e);o.log.sort((a,b)=>a.d<b.d?-1:1);
+  if(o.w0==null&&e.w!=null)o.w0=e.w;if(o.b0==null&&e.b!=null)o.b0=e.b;if(o.p0==null&&e.p!=null)o.p0=e.p;if(!o.d0)o.d0=e.d;pvSet(o);
+  ["pvNW","pvNB","pvNP"].forEach(i=>$(i).value="");$("pvMsg").textContent="✅ Gespeichert (nur auf diesem Handy)";pvRender()};
 // ---------- Feedback & Umfrage ----------
 const FBK=[["frage","❓ Frage"],["idee","💡 Idee"],["problem","🐞 Problem"],["lob","👍 Lob"]];
 let fbSel="idee";
