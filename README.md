@@ -2,7 +2,7 @@
 
 Kurze Halte-Workouts (max. 15 Min.) mit Sprachansage, Kalender, Punkten, Challenges und Ranking.
 
-**App:** https://bobby983983.github.io/workout-coach/
+**App:** https://challenge-your-friends.github.io/ (alt: https://bobby983983.github.io/workout-coach/)
 
 ## Backend einrichten (einmalig, ca. 3 Min.)
 1. https://script.google.com → **Neues Projekt**, Name „Workout-Coach Backend“.

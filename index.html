@@ -304,6 +304,9 @@ const isRest=k=>parse(k).getDay()===0;
 function ls(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 let state={days:{},ms:[],ch:{},name:"",start:""};
+// Umzug: Anmeldung von der alten Adresse mitnehmen (#t=… im Link), danach aus der Adresszeile entfernen
+const NEW_URL="https://challenge-your-friends.github.io/",OLD_SITE=location.host==="bobby983983.github.io";
+try{const m=location.hash.match(/^#t=([\w-]+)$/);if(m){lsSet("token",m[1]);history.replaceState(null,"",location.pathname+location.search)}}catch(e){}
 let token=ls("token",""),email="",mp=2,others=[],online=false;
 state=Object.assign(state,ls("state",{}));
 async function api(a,body){
@@ -425,6 +428,7 @@ function renderMenu(){
   else if(tw)b="Heute dran: <b>"+W[tw].t+"</b> – noch offen."+(email&&mp?" Um 18 Uhr kommt sonst eine Mail.":"");
   else{cls="good";b="😴 Sonntag = Ruhetag. Freiwilliges Workout gibt +1."}
   if(XMAS(t))b+=" 🎄 Heute doppelte Punkte!";
+  if(OLD_SITE&&t>="2026-11-30"){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token):"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
   if(t<CH_START)b+=' <span style="opacity:.75">· 🧪 Testphase bis 30.11., am 1.12. starten alle bei 0.</span>';
   $("banners").innerHTML='<div class="banner '+cls+'">'+b+'</div>';
   {let wk=tw||"K",lab="▶ Heutiges Workout starten";

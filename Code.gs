@@ -7,7 +7,8 @@
  * "Bereitstellen > Neue Bereitstellung > Web-App", Ausführen als: Ich,
  * Zugriff: Jeder. Die Web-App-URL in index.html bei API_URL eintragen.
  */
-const APP_LINK = 'https://bobby983983.github.io/workout-coach/';
+// ab 30.11.2026 zeigen alle Mails auf die neue Adresse
+const APP_LINK = Utilities.formatDate(new Date(), 'Europe/Berlin', 'yyyy-MM-dd') >= '2026-11-30' ? 'https://challenge-your-friends.github.io/' : 'https://bobby983983.github.io/workout-coach/';
 const PLAN = {1:'Tag A', 2:'Kurztag', 3:'Tag B', 4:'Kurztag', 5:'Tag A', 6:'Kurztag'};
 // A und B wechseln wöchentlich (Woche ab 23.11.2026: A-B-A, danach B-A-B usw.)
 function planName_(t) { const n = PLAN[dow_(t)]; if (!n || n === 'Kurztag') return n; const wk = Math.round((new Date(weekKey_(t) + 'T12:00:00Z') - new Date('2026-11-23T12:00:00Z')) / 6048e5); return (((wk % 2) + 2) % 2 === 1) ? (n === 'Tag A' ? 'Tag B' : 'Tag A') : n; }
@@ -321,9 +322,9 @@ function linkNotice() {
   const { rows } = rows_();
   rows.forEach(r => {
     const o = r.o; if (!o.email || !o.name) return;
-    const body = 'Hey ' + o.name + ',\n\nkurze Info vor dem Start der Challenge am 1.12.: CYF hat eine neue Adresse 🎉\n\n👉 ' + NEW_LINK + '\n\n' +
+    const body = 'Hey ' + o.name + ',\n\nkurze Info vor dem Start der Challenge am 1.12.: CYF hat eine neue Adresse 🎉\n\n👉 ' + NEW_LINK + (o.token ? '#t=' + o.token : '') + '\n\n' +
       'Bitte leg die Verknüpfung auf deinem Startbildschirm einmal neu an:\n' +
-      '1. Den Link oben im Browser öffnen (du bist automatisch angemeldet, falls nicht: Name + PIN wie bisher).\n' +
+      '1. Den Link oben öffnen – damit bist du direkt angemeldet (falls nicht: Name + PIN wie bisher).\n' +
       '2. Android/Chrome: Menü ⋮ → „Zum Startbildschirm hinzufügen“. iPhone/Safari: Teilen-Symbol → „Zum Home-Bildschirm“.\n' +
       '3. Die alte Verknüpfung kannst du löschen.\n\nDeine Punkte und dein Konto bleiben erhalten.\n\nAb morgen zählt\'s – zieh durch! 💪';
     MailApp.sendEmail({ to: o.email, subject: '📲 CYF: neue Adresse – bitte Verknüpfung neu anlegen', body: body, name: 'CYF Challenge' });
