@@ -95,6 +95,8 @@ input.txt{width:100%;padding:12px;border-radius:10px;border:1px solid #333;backg
 #exd{display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:9}#exd h2{font-size:22px;margin:4px 0 6px}#exd h4{font-size:15px;margin:16px 0 6px;color:var(--acc)}#exd li{font-size:15px;line-height:1.5;color:#ddd;margin-bottom:4px}#exd ul,#exd ol{padding-left:20px}#exd .sk{max-width:380px}#exd .key{background:#173a26;color:#c9f5dc;border-radius:12px;padding:12px;font-size:15px;line-height:1.45;margin-top:10px}
 #runSk{cursor:pointer}.skhint{font-size:12px;color:var(--mut);margin-top:-2px}
 select.txt{appearance:auto}
+.fbta{width:100%;min-height:110px;padding:10px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff;font-size:16px;margin-bottom:8px;font-family:inherit;resize:vertical}
+#fbKind .chip,#svNote .chip,#svDone .chip,#svAmt .chip,#svHard .chip,#svEasy .chip{margin:0 6px 6px 0}
 .note{color:var(--mut);font-size:13px;line-height:1.4}
 #modal{display:none;z-index:20;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:20px}
 #modal .card{max-width:360px;width:100%}
@@ -131,7 +133,8 @@ select.txt{appearance:auto}
   <div id="tab-rank" style="display:none"><div id="bossBox"></div><div class="card"><h3>🏆 Ranking</h3><div id="rankList"></div></div><div class="note" id="rankNote">Bei Punktgleichheit liegt vorne, wer mehr Extra-Sekunden eingestellt hat (Mehr → Steigerung).<br>Freunde einladen: einfach den Link zu dieser Seite schicken. Jede/r registriert sich mit Benutzername + PIN.</div></div>
   <div id="tab-more" style="display:none">
   <button class="wbtn" id="bHelp" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">❓ Anleitung &amp; Übungen</b><span>Regeln, Punkte, alle Übungen erklärt</span></button>
-  <button class="wbtn" id="bSingle" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🎯 Einzelne Übung starten</b><span>zum Testen &amp; Üben – zählt nicht für Punkte</span></button>
+  <button class="wbtn" id="bFb" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">💬 Feedback &amp; Fragen</b><span>Idee, Problem, Frage oder Lob – geht direkt an Max</span></button>
+  <button class="wbtn" id="bSingle"style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🎯 Einzelne Übung starten</b><span>zum Testen &amp; Üben – zählt nicht für Punkte</span></button>
   <button class="wbtn" id="bRem" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">🔔 Erinnerungen</b><span>Mails (keine, 1 oder 2 pro Tag) &amp; Kalender-Alarm zur Wunschzeit</span></button>
   <button class="wbtn" id="bAcc" style="text-align:center;padding:12px"><b style="font-size:16px;margin:0">⚙️ Mein Konto</b><span>Abmelden</span></button>
   <div class="card">
@@ -208,6 +211,29 @@ select.txt{appearance:auto}
 <div class="row" style="margin-bottom:12px"><button class="chip" id="remG" style="flex:1">Google Kalender</button><button class="chip" id="remI" style="flex:1">iPhone / anderer</button></div>
 <button class="chip" id="remX" style="width:100%">Schließen</button>
 </div></div>
+<div id="fb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:20px;z-index:7;overflow:auto"><div class="card" style="max-width:380px;width:100%">
+<h3>💬 Feedback &amp; Fragen</h3>
+<p class="note" style="margin-top:0">Alles, was dir auffällt: Übungen, Punkte, Fehler, Ideen. Geht direkt an Max.</p>
+<label>Worum geht's?</label><div class="row" id="fbKind" style="margin:8px 0 12px;flex-wrap:wrap"></div>
+<textarea id="fbTxt" maxlength="2000" class="fbta" placeholder="Schreib einfach los …"></textarea>
+<p class="note" id="fbMailHint" style="margin-top:0"></p>
+<div id="fbMsg" style="font-size:14px;min-height:20px;margin-bottom:8px;color:var(--mut)"></div>
+<button class="wbtn" id="fbSend" style="text-align:center;background:var(--acc);color:#000;margin:0 0 10px"><b>Absenden</b></button>
+<button class="chip" id="fbSv" style="width:100%;margin-bottom:10px">📝 Umfrage zur Testphase (2 Min.)</button>
+<button class="chip" id="fbX" style="width:100%">Schließen</button>
+</div></div>
+<div id="sv" style="display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:8"><div style="max-width:480px;margin:0 auto">
+<div class="row" style="justify-content:space-between"><h1>📝 Umfrage Testphase</h1><button class="chip" id="svX">Schließen ✕</button></div>
+<p class="sub">Dauert 2 Minuten und hilft, die Challenge ab 1.12. richtig gut zu machen. Danke! 🙏</p>
+<div class="card"><label>Wie gefällt dir die App?</label><div class="row" id="svNote" style="margin-top:8px;flex-wrap:wrap"></div></div>
+<div class="card"><label>Hast du die Workouts geschafft?</label><div class="row" id="svDone" style="margin-top:8px;flex-wrap:wrap"></div></div>
+<div class="card"><label>Wie ist der Umfang (Anzahl/Dauer der Übungen)?</label><div class="row" id="svAmt" style="margin-top:8px;flex-wrap:wrap"></div></div>
+<div class="card"><label>Welche Übungen findest du zu <b>schwer</b>?</label><p class="note" style="margin:4px 0 8px">Mehrfachauswahl, nichts antippen = passt.</p><div class="row" id="svHard" style="flex-wrap:wrap"></div></div>
+<div class="card"><label>Welche Übungen findest du zu <b>leicht</b>?</label><div class="row" id="svEasy" style="margin-top:8px;flex-wrap:wrap"></div></div>
+<div class="card"><label>Was gefällt dir, was nervt, was fehlt? Hast du Fragen?</label><textarea id="svTxt" maxlength="1000" class="fbta" style="margin-top:8px" placeholder="z. B. Stimme, Musik, Mails, Punkte, Ideen …"></textarea></div>
+<div id="svMsg" style="font-size:14px;min-height:20px;margin-bottom:8px;color:var(--mut)"></div>
+<button class="wbtn" id="svSend" style="text-align:center;background:var(--acc);color:#000"><b>Umfrage absenden</b></button>
+</div></div>
 <div id="pick" style="display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:8"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>🎯 Einzelne Übung</h1><button class="chip" id="pickX">Schließen ✕</button></div><p class="sub">Antippen = starten. ℹ️ = Erklärung. Zählt nicht für Punkte.</p><div class="exl" id="pickList"></div></div></div>
 <div id="exd"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><span class="note">Übung</span><button class="chip" id="exdX">Zurück ✕</button></div><div id="exdBody"></div><button class="wbtn" id="exdX2" style="text-align:center;margin-top:16px"><b>Verstanden 👍</b></button></div></div>
 <div id="help"><div style="max-width:480px;margin:0 auto">
@@ -216,7 +242,7 @@ select.txt{appearance:auto}
 <h2>2. Trainieren</h2><ol><li><b>Ton laut</b> machen, Handy hinlegen.</li><li>Auf <b>„▶ Heutiges Workout starten“</b> tippen – die App weiß, welcher Tag dran ist.</li><li>Der Coach sagt alles an: Übung, Ausführung, Countdown, Pausen. Die Skizze zeigt die Haltung.</li><li>Am Ende wird der Tag automatisch im Kalender abgehakt.</li></ol>
 <p><b>Wochenplan:</b> Mo, Mi, Fr = Tag A und Tag B im Wechsel (eine Woche A-B-A, die nächste B-A-B) · Di, Do, Sa = Kurztag (7 Min.) · 🪑 Tag A braucht einen Stuhl oder Hocker · Tag A und B ein normales Handtuch (ca. 50 × 100 cm, kein Gästehandtuch) · So = Ruhetag</p>
 
-<h2>🏁 Die Challenge</h2><ul><li><b>Testphase bis 30.11.:</b> App und Übungen ausprobieren, Feedback an Max.</li><li><b>Challenge 1.12.–31.12.:</b> Am 1.12. starten alle bei 0 Punkten.</li><li><b>Kein Überspringen:</b> Punkte gibt es nur, wenn das Workout komplett durchläuft – alle Übungen und alle Pausen.</li><li><b>Internet nötig:</b> Ohne Verbindung zählt ein Workout nicht – die App meldet das gleich beim Start.</li><li><b>App im Vordergrund lassen:</b> Bildschirm an, App offen. Wechselst du die App oder geht das Handy aus, pausiert das Workout und läuft erst weiter, wenn du „Weiter“ tippst.</li><li>Abbrechen = keine Punkte. Pause tippen ist erlaubt – die Zeit läuft danach trotzdem komplett.</li><li>Jeden Sonntag kommt per Mail die Wochenübersicht mit Ranking.</li></ul>
+<h2>🏁 Die Challenge</h2><ul><li><b>Testphase bis 30.11.:</b> App und Übungen ausprobieren, Feedback, Fragen und Ideen jederzeit über „Mehr“ → „💬 Feedback &amp; Fragen“ an Max.</li><li><b>Challenge 1.12.–31.12.:</b> Am 1.12. starten alle bei 0 Punkten.</li><li><b>Kein Überspringen:</b> Punkte gibt es nur, wenn das Workout komplett durchläuft – alle Übungen und alle Pausen.</li><li><b>Internet nötig:</b> Ohne Verbindung zählt ein Workout nicht – die App meldet das gleich beim Start.</li><li><b>App im Vordergrund lassen:</b> Bildschirm an, App offen. Wechselst du die App oder geht das Handy aus, pausiert das Workout und läuft erst weiter, wenn du „Weiter“ tippst.</li><li>Abbrechen = keine Punkte. Pause tippen ist erlaubt – die Zeit läuft danach trotzdem komplett.</li><li>Jeden Sonntag kommt per Mail die Wochenübersicht mit Ranking.</li></ul>
 <h2>3. Punkte</h2>
 <table class="pt-tbl">
 <tr><td>✓ Workout am Tag erledigt</td><td style="color:var(--acc)">+3</td></tr>
@@ -431,7 +457,9 @@ function renderMenu(){
   if(XMAS(t))b+=" 🎄 Heute doppelte Punkte!";
   if(OLD_SITE&&t>="2026-11-30"){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token):"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
   if(t<CH_START)b+=' <span style="opacity:.75">· 🧪 Testphase bis 30.11., am 1.12. starten alle bei 0.</span>';
-  $("banners").innerHTML='<div class="banner '+cls+'">'+b+'</div>';
+  let svb=(t>="2026-11-30"&&t<="2026-12-07"&&!ls("svDone",0))?'<div class="banner info" id="svBan" style="cursor:pointer">📝 <b>Kurze Umfrage zur Testphase</b> (2 Min.) – welche Übungen sind zu schwer, zu leicht? Hier antippen.</div>':"";
+  $("banners").innerHTML='<div class="banner '+cls+'">'+b+'</div>'+svb;
+  if($("svBan"))$("svBan").onclick=svOpen;
   {let wk=tw||"K",lab="▶ Heutiges Workout starten";
   if(tDone&&yMiss){wk=planFor(y)||"K";lab="↺ Gestern nachholen"}else if(tDone)lab="💪 Extra-Runde (zählt nicht doppelt)";else if(!tw)lab="😴 Sonntag: freiwilliges Workout (+1)";
   todayW=wk;$("bTodayT").textContent=lab;$("bTodayS").textContent=W[wk].t+" · "+DESC[wk];}
@@ -1029,6 +1057,35 @@ $("bRem").onclick=()=>{if(!token){showLogin();return}mpSel=mp;renderMp();$("remM
 $("remX").onclick=()=>$("rem").style.display="none";
 $("remSave").onclick=async()=>{const m=$("remMail").value.trim();if(mpSel&&!m){$("remMsg").textContent="Bitte E-Mail-Adresse eintragen – oder „keine“ wählen.";return}
   try{const r=await api("email",{token,email:m,mp:mpSel});if(r.ok){email=r.email;mp=mpSel;$("remMsg").textContent="✅ Gespeichert";renderMenu()}else $("remMsg").textContent=r.err||"Fehler"}catch(e){$("remMsg").textContent="Keine Verbindung"}};
+// ---------- Feedback & Umfrage ----------
+const FBK=[["frage","❓ Frage"],["idee","💡 Idee"],["problem","🐞 Problem"],["lob","👍 Lob"]];
+let fbSel="idee";
+function renderFbKind(){chips("fbKind",FBK.map(x=>x[0]),fbSel,v=>FBK.find(x=>x[0]===v)[1],v=>{fbSel=v})}
+function fbOpen(){if(!token){showLogin();return}fbSel="idee";renderFbKind();$("fbTxt").value=ls("fbDraft","");$("fbMsg").textContent="";
+  $("fbMailHint").textContent=email?"Max kann dir direkt per Mail antworten ("+email+").":"Tipp: Mit E-Mail unter „🔔 Erinnerungen“ kann Max dir direkt antworten.";$("fb").style.display="flex"}
+$("bFb").onclick=fbOpen;
+$("fbX").onclick=()=>$("fb").style.display="none";
+$("fbTxt").oninput=()=>lsSet("fbDraft",$("fbTxt").value);
+async function fbPost(body,msgEl,btn){
+  if(!navigator.onLine){$(msgEl).textContent="⚠️ Keine Internetverbindung – bitte später nochmal.";return false}
+  $(btn).disabled=true;$(msgEl).textContent="Wird gesendet …";
+  try{const r=await api("feedback",Object.assign({token},body));$(btn).disabled=false;
+    if(r.ok)return true;$(msgEl).textContent="⚠️ "+(r.err==="unbekannte Aktion"?"Feedback ist gleich startklar – bitte in ein paar Minuten nochmal.":(r.err||"Fehler"));return false}
+  catch(e){$(btn).disabled=false;$(msgEl).textContent="⚠️ Keine Verbindung – bitte später nochmal.";return false}}
+$("fbSend").onclick=async()=>{const t=$("fbTxt").value.trim();if(t.length<3){$("fbMsg").textContent="Bitte kurz beschreiben, worum es geht.";return}
+  if(await fbPost({kind:fbSel,text:t},"fbMsg","fbSend")){lsSet("fbDraft","");$("fbTxt").value="";$("fbMsg").textContent="✅ Danke! Ist bei Max angekommen."}};
+const SVN=[1,2,3,4,5],SVD=["Ja, alle","Meistens","Selten","Nein"],SVA=["zu wenig","passt","zu viel"];
+const SVX=[...new Set(Object.values(EX).map(e=>e.n.split(" – ")[0]))];
+let sv={note:0,geschafft:"",umfang:"",schwer:[],leicht:[]};
+function multi(id,list,arr){const el=$(id);el.innerHTML="";list.forEach(n=>{const b=document.createElement("button");b.className="chip"+(arr.includes(n)?" on":"");b.textContent=n;
+  b.onclick=()=>{const i=arr.indexOf(n);if(i<0)arr.push(n);else arr.splice(i,1);b.className="chip"+(arr.includes(n)?" on":"")};el.appendChild(b)})}
+function svOpen(){if(!token){showLogin();return}$("fb").style.display="none";sv={note:0,geschafft:"",umfang:"",schwer:[],leicht:[]};
+  chips("svNote",SVN,0,v=>"⭐".repeat(v),v=>{sv.note=v});chips("svDone",SVD,"",v=>v,v=>{sv.geschafft=v});chips("svAmt",SVA,"",v=>v,v=>{sv.umfang=v});
+  multi("svHard",SVX,sv.schwer);multi("svEasy",SVX,sv.leicht);$("svTxt").value="";$("svMsg").textContent="";$("sv").style.display="block";$("sv").scrollTop=0}
+$("fbSv").onclick=svOpen;
+$("svX").onclick=()=>$("sv").style.display="none";
+$("svSend").onclick=async()=>{if(!sv.note&&!sv.geschafft&&!sv.umfang&&!sv.schwer.length&&!sv.leicht.length&&!$("svTxt").value.trim()){$("svMsg").textContent="Bitte mindestens eine Frage beantworten.";return}
+  if(await fbPost({kind:"umfrage",survey:Object.assign({},sv,{app:$("svTxt").value.trim()})},"svMsg","svSend")){lsSet("svDone",1);$("sv").style.display="none";renderMenu();ask("<b>✅ Danke fürs Mitmachen!</b><br>Deine Antworten sind bei Max. Am 1.12. geht's los – zieh durch! 💪",()=>{},null,"Super","Schließen")}};
 $("remG").onclick=()=>remGo("g");$("remI").onclick=()=>remGo("i");
 function remGo(kind){const v=($("remT")&&$("remT").value)||"18:00",hh=v.slice(0,2),mm=v.slice(3,5);let d=new Date();if(d.getDay()===0)d.setDate(d.getDate()+1);
   const ds=key(d).replace(/-/g,""),e=new Date(2000,0,1,+hh,+mm+15),et=String(e.getHours()).padStart(2,"0")+String(e.getMinutes()).padStart(2,"0");

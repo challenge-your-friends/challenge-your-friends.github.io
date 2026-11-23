@@ -191,6 +191,11 @@ function doPost(e) {
         return { name: r.o.name, start: dstr_(r.o.start), days: d.days || {}, ch: d.ch || {}, bx: +d.bx || 0 };
       }) });
     }
+    if (q.a === 'feedback') {
+      const r = byToken(q.token);
+      if (!r) return out_({ ok: false, err: 'auth' });
+      return out_(feedback_(r.o, q));
+    }
     return out_({ ok: false, err: 'unbekannte Aktion' });
   } catch (err) {
     return out_({ ok: false, err: String(err) });
@@ -314,6 +319,33 @@ function archiveCopies_() {
       if (forOthers) t.moveToArchive();
     });
   } catch (e) { Logger.log('Archivieren fehlgeschlagen: ' + e); }
+}
+
+// Feedback-Button & Umfrage: landet in der Tabelle (Blatt "Feedback") und als Mail bei Max (Antworten gehen direkt an die Person)
+const FB_KIND = { frage: '❓ Frage', idee: '💡 Idee', problem: '🐞 Problem', lob: '👍 Lob', umfrage: '📝 Umfrage Testphase' };
+function feedback_(o, q) {
+  const kind = FB_KIND[q.kind] ? q.kind : 'idee';
+  const text = String(q.text || '').trim().slice(0, 2000);
+  const s = (q.survey && typeof q.survey === 'object') ? q.survey : null;
+  const lst = v => (Array.isArray(v) ? v : []).slice(0, 40).map(x => String(x).slice(0, 60));
+  const sv = s ? { note: Math.max(0, Math.min(5, Math.round(+s.note || 0))), geschafft: String(s.geschafft || '').slice(0, 30), umfang: String(s.umfang || '').slice(0, 30), schwer: lst(s.schwer), leicht: lst(s.leicht), app: String(s.app || '').slice(0, 1000) } : null;
+  if (!text && !sv) return { ok: false, err: 'Bitte etwas schreiben' };
+  const c = CacheService.getScriptCache(), ck = 'fb_' + o.nameKey, n = +(c.get(ck) || 0);
+  if (n >= 15) return { ok: false, err: 'Heute schon sehr viel Feedback – morgen wieder 🙂' };
+  c.put(ck, String(n + 1), 21600);
+  const ss = sheet_().getParent();
+  let fs = ss.getSheetByName('Feedback');
+  if (!fs) { fs = ss.insertSheet('Feedback'); fs.appendRow(['Zeit', 'Name', 'E-Mail', 'Art', 'Text', 'Note (1–5)', 'Workouts geschafft', 'Umfang', 'Zu schwer', 'Zu leicht', 'App/Anmerkungen']); fs.setFrozenRows(1); }
+  fs.appendRow([new Date(), o.name, o.email || '', FB_KIND[kind], text, sv ? sv.note || '' : '', sv ? sv.geschafft : '', sv ? sv.umfang : '', sv ? sv.schwer.join(', ') : '', sv ? sv.leicht.join(', ') : '', sv ? sv.app : '']);
+  let body = FB_KIND[kind] + ' von ' + o.name + (o.email ? ' (' + o.email + ')' : ' (keine E-Mail hinterlegt)') + '\n\n';
+  if (sv) body += 'Note für die App: ' + (sv.note ? '⭐'.repeat(sv.note) + ' (' + sv.note + '/5)' : '–') + '\nWorkouts geschafft: ' + (sv.geschafft || '–') + '\nUmfang: ' + (sv.umfang || '–') +
+    '\nZu schwer: ' + (sv.schwer.join(', ') || '–') + '\nZu leicht: ' + (sv.leicht.join(', ') || '–') + '\nApp / Anmerkungen: ' + (sv.app || '–') + '\n\n';
+  if (text) body += text + '\n\n';
+  body += (o.email ? 'Einfach auf diese Mail antworten – die Antwort geht direkt an ' + o.name + '.\n' : '') + 'Alles gesammelt im Blatt „Feedback“: ' + ss.getUrl();
+  const m = { to: Session.getEffectiveUser().getEmail(), subject: '💬 CYF-Feedback: ' + FB_KIND[kind] + ' von ' + o.name, body: body, name: 'CYF Feedback' };
+  if (o.email) m.replyTo = o.email;
+  try { MailApp.sendEmail(m); } catch (e) { Logger.log('Feedback-Mail fehlgeschlagen: ' + e); }
+  return { ok: true };
 }
 
 // Einmalige Info an alle: neue Adresse der App, Verknüpfung neu anlegen
