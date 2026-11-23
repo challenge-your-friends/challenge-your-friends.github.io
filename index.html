@@ -455,7 +455,7 @@ function renderMenu(){
   else if(tw)b="Heute dran: <b>"+W[tw].t+"</b> – noch offen."+(email&&mp?" Um 18 Uhr kommt sonst eine Mail.":"");
   else{cls="good";b="😴 Sonntag = Ruhetag. Freiwilliges Workout gibt +1."}
   if(XMAS(t))b+=" 🎄 Heute doppelte Punkte!";
-  if(OLD_SITE&&t>="2026-11-30"){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token):"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
+  if(OLD_SITE){cls="bad";b='📲 <b>CYF ist umgezogen!</b> <a href="'+NEW_URL+(token?"#t="+encodeURIComponent(token):"")+'" style="color:inherit">Hier zur neuen Adresse</a> – du bleibst angemeldet. Danach dort die Verknüpfung auf dem Startbildschirm neu anlegen.'}
   if(t<CH_START)b+=' <span style="opacity:.75">· 🧪 Testphase bis 30.11., am 1.12. starten alle bei 0.</span>';
   let svb=(t>="2026-11-30"&&t<="2026-12-07"&&!ls("svDone",0))?'<div class="banner info" id="svBan" style="cursor:pointer">📝 <b>Kurze Umfrage zur Testphase</b> (2 Min.) – welche Übungen sind zu schwer, zu leicht? Hier antippen.</div>':"";
   $("banners").innerHTML='<div class="banner '+cls+'">'+b+'</div>'+svb;

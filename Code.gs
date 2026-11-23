@@ -7,8 +7,8 @@
  * "Bereitstellen > Neue Bereitstellung > Web-App", Ausführen als: Ich,
  * Zugriff: Jeder. Die Web-App-URL in index.html bei API_URL eintragen.
  */
-// ab 30.11.2026 zeigen alle Mails auf die neue Adresse
-const APP_LINK = Utilities.formatDate(new Date(), 'Europe/Berlin', 'yyyy-MM-dd') >= '2026-11-30' ? 'https://challenge-your-friends.github.io/' : 'https://bobby983983.github.io/workout-coach/';
+// alle Mails zeigen auf die neue Adresse (Umzug am 23.11.2026 vorgezogen)
+const APP_LINK = 'https://challenge-your-friends.github.io/';
 const PLAN = {1:'Tag A', 2:'Kurztag', 3:'Tag B', 4:'Kurztag', 5:'Tag A', 6:'Kurztag'};
 // A und B wechseln wöchentlich (Woche ab 23.11.2026: A-B-A, danach B-A-B usw.)
 function planName_(t) { const n = PLAN[dow_(t)]; if (!n || n === 'Kurztag') return n; const wk = Math.round((new Date(weekKey_(t) + 'T12:00:00Z') - new Date('2026-11-23T12:00:00Z')) / 6048e5); return (((wk % 2) + 2) % 2 === 1) ? (n === 'Tag A' ? 'Tag B' : 'Tag A') : n; }
@@ -302,7 +302,7 @@ function morningReminder() {
   archiveCopies_();
 }
 
-// Kopien der Mails an andere landen (weil über Max' Gmail verschickt) auch in seinem Posteingang – die werden archiviert.
+// Kopien der Mails an andere landen (weil über Max' Gmail verschickt) in seinem Postfach (Gesendet) – die kommen in den Papierkorb (30 Tage wiederherstellbar).
 function normMail_(s) {
   const m = String(s || '').match(/<([^>]+)>/); let a = (m ? m[1] : String(s || '')).trim().toLowerCase();
   const p = a.split('@'); if (p.length !== 2) return a;
@@ -314,9 +314,9 @@ function archiveCopies_() {
   try {
     Utilities.sleep(8000);
     const me = normMail_(Session.getEffectiveUser().getEmail());
-    GmailApp.search('in:inbox from:me subject:(Workout OR CYF) newer_than:2d', 0, 100).forEach(t => {
+    GmailApp.search('from:me subject:(Workout OR CYF) newer_than:2d -in:trash', 0, 100).forEach(t => {
       const forOthers = t.getMessages().every(m => String(m.getTo()).split(',').every(x => normMail_(x) !== me));
-      if (forOthers) t.moveToArchive();
+      if (forOthers) t.moveToTrash();
     });
   } catch (e) { Logger.log('Archivieren fehlgeschlagen: ' + e); }
 }
@@ -354,14 +354,21 @@ function linkNotice() {
   const { rows } = rows_();
   rows.forEach(r => {
     const o = r.o; if (!o.email || !o.name) return;
-    const body = 'Hey ' + o.name + ',\n\nkurze Info vor dem Start der Challenge am 1.12.: CYF hat eine neue Adresse 🎉\n\n👉 ' + NEW_LINK + (o.token ? '#t=' + o.token : '') + '\n\n' +
-      'Bitte leg die Verknüpfung auf deinem Startbildschirm einmal neu an:\n' +
-      '1. Den Link oben öffnen – damit bist du direkt angemeldet (falls nicht: Name + PIN wie bisher).\n' +
-      '2. Android/Chrome: Menü ⋮ → „Zum Startbildschirm hinzufügen“. iPhone/Safari: Teilen-Symbol → „Zum Home-Bildschirm“.\n' +
-      '3. Die alte Verknüpfung kannst du löschen.\n\nDeine Punkte und dein Konto bleiben erhalten.\n\nAb morgen zählt\'s – zieh durch! 💪';
-    MailApp.sendEmail({ to: o.email, subject: '📲 CYF: neue Adresse – bitte Verknüpfung neu anlegen', body: body, name: 'CYF Challenge' });
+    const body = 'Hey ' + o.name + ',\n\nkleine Korrektur: Deine Verknüpfung zeigt noch auf die alte Adresse. CYF läuft ab sofort hier:\n👉 ' + NEW_LINK + (o.token ? '#t=' + o.token : '') + '\n\n' +
+      'Damit bist du direkt angemeldet (falls nicht: Name + PIN wie bisher). Danach:\n' +
+      '1. Android/Chrome: Menü ⋮ → „Zum Startbildschirm hinzufügen“. iPhone/Safari: Teilen → „Zum Home-Bildschirm“.\n' +
+      '2. Die alte Verknüpfung löschen.\nDeine Punkte und dein Konto bleiben erhalten.\n\n' +
+      'Kurze Bitte: Sag mir, ob du über den Link reinkommst – einfach auf diese Mail antworten oder in der App unter „Mehr“ → „💬 Feedback & Fragen“.\n\n' +
+      'Und: Mach diese Woche bitte 1–2 Test-Workouts. So sehen wir vor dem Start am 1.12., ob die Intensität für alle passt: zu schwer, zu leicht oder genau richtig? Auch das gern per Feedback.\n\n' +
+      'Ab 1.12. zählt\'s – zieh durch! 💪\nMax';
+    MailApp.sendEmail({ to: o.email, subject: '📲 CYF: Bitte neuen Link nutzen – und 1–2 Test-Workouts diese Woche', body: body, name: 'CYF Challenge' });
   });
   archiveCopies_();
+}
+// Umzug vorgezogen: Mail jetzt senden und den geplanten Termin am 30.11. entfernen
+function umzugJetzt() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'linkNotice').forEach(t => ScriptApp.deleteTrigger(t));
+  linkNotice();
 }
 // einmal im Editor ausführen: plant linkNotice für Mo 30.11.2026, 9 Uhr
 function planLinkNotice() {
