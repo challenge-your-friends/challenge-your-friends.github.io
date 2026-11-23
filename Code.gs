@@ -303,6 +303,7 @@ function morningReminder() {
 }
 
 // Kopien der Mails an andere landen (weil über Max' Gmail verschickt) in seinem Postfach (Gesendet) – die kommen in den Papierkorb (30 Tage wiederherstellbar).
+const OWNER = 'm.spitthoff@googlemail.com'; // Max – Absender aller Mails
 function normMail_(s) {
   const m = String(s || '').match(/<([^>]+)>/); let a = (m ? m[1] : String(s || '')).trim().toLowerCase();
   const p = a.split('@'); if (p.length !== 2) return a;
@@ -310,11 +311,11 @@ function normMail_(s) {
   if (dom === 'gmail.com') loc = loc.split('+')[0].replace(/\./g, '');
   return loc + '@' + dom;
 }
-function archiveCopies_() {
+function archiveCopies_(tage) {
   try {
-    Utilities.sleep(8000);
-    const me = normMail_(Session.getEffectiveUser().getEmail());
-    GmailApp.search('from:me subject:(Workout OR CYF) newer_than:2d -in:trash', 0, 100).forEach(t => {
+    if (!tage) Utilities.sleep(8000);
+    const me = normMail_(OWNER);
+    GmailApp.search('from:me subject:(Workout OR CYF) newer_than:' + (tage || 2) + 'd -in:trash', 0, 200).forEach(t => {
       const forOthers = t.getMessages().every(m => String(m.getTo()).split(',').every(x => normMail_(x) !== me));
       if (forOthers) t.moveToTrash();
     });
@@ -342,7 +343,7 @@ function feedback_(o, q) {
     '\nZu schwer: ' + (sv.schwer.join(', ') || '–') + '\nZu leicht: ' + (sv.leicht.join(', ') || '–') + '\nApp / Anmerkungen: ' + (sv.app || '–') + '\n\n';
   if (text) body += text + '\n\n';
   body += (o.email ? 'Einfach auf diese Mail antworten – die Antwort geht direkt an ' + o.name + '.\n' : '') + 'Alles gesammelt im Blatt „Feedback“: ' + ss.getUrl();
-  const m = { to: Session.getEffectiveUser().getEmail(), subject: '💬 CYF-Feedback: ' + FB_KIND[kind] + ' von ' + o.name, body: body, name: 'CYF Feedback' };
+  const m = { to: OWNER, subject: '💬 CYF-Feedback: ' + FB_KIND[kind] + ' von ' + o.name, body: body, name: 'CYF Feedback' };
   if (o.email) m.replyTo = o.email;
   try { MailApp.sendEmail(m); } catch (e) { Logger.log('Feedback-Mail fehlgeschlagen: ' + e); }
   return { ok: true };
@@ -365,6 +366,8 @@ function linkNotice() {
   });
   archiveCopies_();
 }
+// einmalig: alte Kopien der letzten 14 Tage aufräumen
+function aufraeumen() { archiveCopies_(14); }
 // Umzug vorgezogen: Mail jetzt senden und den geplanten Termin am 30.11. entfernen
 function umzugJetzt() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'linkNotice').forEach(t => ScriptApp.deleteTrigger(t));
