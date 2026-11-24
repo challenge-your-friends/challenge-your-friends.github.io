@@ -315,7 +315,7 @@ function archiveCopies_(tage) {
   try {
     if (!tage) Utilities.sleep(8000);
     const me = normMail_(OWNER);
-    GmailApp.search('from:me subject:(Workout OR CYF) newer_than:' + (tage || 2) + 'd -in:trash', 0, 200).forEach(t => {
+    GmailApp.search('in:sent subject:(Workout OR CYF) newer_than:' + (tage || 2) + 'd -in:trash', 0, 200).forEach(t => {
       const forOthers = t.getMessages().every(m => String(m.getTo()).split(',').every(x => normMail_(x) !== me));
       if (forOthers) t.moveToTrash();
     });
