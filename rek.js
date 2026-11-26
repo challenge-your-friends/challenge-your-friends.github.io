@@ -128,7 +128,7 @@ const LIB=[
 ];
 const LIBK={};LIB.forEach(x=>LIBK[x.id]=x);
 const RK_MODE={h:"⏱ Halten",r:"🔁 Am Stück",r60:"⚡ 60 Sekunden",s:"🧘 Dehnen"};
-const MED=["🥉","🥈","🥇","💎","🏆","👑","🦾","🚀","🌋","🐐"];
+const MED=["🥉","🥈","🥇","🏆"];
 const RT0="2026-12-27",TEST=[{id:"pu",alt:"puk"},{id:"plank"},{id:"wallsit"},{id:"hollow"}];
 // Dehnübungen für den Ablauf (Sprachansage, Skizze) anmelden
 LIB.filter(x=>x.m==="s"&&!x.ex).forEach(x=>{
@@ -152,7 +152,9 @@ const fmtVL=(x,v)=>x.m==="h"?fmtS(v):x.u==="st"?"Stufe "+v:v+" Wdh.";
 function fmtS(s){s=RX(s);return s<60?s+" s":Math.floor(s/60)+":"+String(s%60).padStart(2,"0")+" min"}
 const stp=x=>x.m==="h"?30:(x.st||10);
 const tier=(x,v)=>Math.floor((v||0)/stp(x));
-const badge=(x,n)=>n>0?MED[Math.min(n-1,MED.length-1)]+" "+(x.m==="h"?(n*30)+" s":x.u==="st"?"Stufe "+n:(n*stp(x))+"×"):"";
+// Abzeichen ohne Ende: 🥉 🥈 🥇, danach immer ein Pokal mit der Zahl (Halten in Minuten)
+const fmtMin=n=>n*30<60?"30 s":String(n/2).replace(".",",")+" Min.";
+const badge=(x,n)=>n>0?MED[Math.min(n-1,MED.length-1)]+" "+(x.m==="h"?fmtMin(n):x.u==="st"?"Stufe "+n:(n*stp(x))+"×"):"";
 function badgeCount(rec){let n=0;Object.keys(rec||{}).forEach(k=>{if(LIBK[k])n+=tier(LIBK[k],rec[k].b)});return n}
 function pct(a,b){return a>0?Math.round((b-a)/a*100):null}
 
@@ -195,7 +197,7 @@ document.body.insertAdjacentHTML("beforeend",
   const c=$("cal")&&$("cal").closest(".card");if(c)c.insertAdjacentHTML("afterend",'<div class="card" id="tutBox"></div>');
   $("tab-rank").insertAdjacentHTML("beforeend",'<div class="card" id="rkTut"></div><div class="card" id="rkRec"></div><div class="card" id="rkTst" style="display:none"></div>');
   const h=[...document.querySelectorAll("#help h2")].find(x=>/Steigern/.test(x.textContent));
-  if(h&&h.nextElementSibling)h.nextElementSibling.insertAdjacentHTML("afterend",'<h2>7. Rekorde &amp; Dehnen (freiwillig)</h2><ul><li>Unter dem Workout: <b>„🏆 Rekorde &amp; Dehnen“</b>. Über '+LIB.length+' Übungen mit Skizze – Halten auf Zeit, Wiederholungen am Stück, 60-Sekunden-Sprints und Dehnen.</li><li><b>Rekordversuch</b> jederzeit, so oft du willst. Gibt keine Punkte, nur Abzeichen: beim Halten alle 30 s (30 · 60 · 90 · 120 …), bei Wiederholungen alle 5 oder 10.</li><li>Dein erster Versuch bleibt gespeichert – so siehst du, wie viel du zugelegt hast. Wer in der Gruppe vorne liegt, bekommt die 👑.</li><li><b>Fitness-Test:</b> Liegestütze, Plank, Wandsitzen, Hollow Body – einmal zum Start, einmal ab 27.12. Im Ranking zählt nur, um wie viel Prozent du dich verbessert hast.</li><li><b>Dehnen:</b> einzeln oder als Ablauf mit Ansage – zählt nicht, tut aber gut.</li></ul>')})();
+  if(h&&h.nextElementSibling)h.nextElementSibling.insertAdjacentHTML("afterend",'<h2>7. Rekorde &amp; Dehnen (freiwillig)</h2><ul><li>Unter dem Workout: <b>„🏆 Rekorde &amp; Dehnen“</b>. Über '+LIB.length+' Übungen mit Skizze – Halten auf Zeit, Wiederholungen am Stück, 60-Sekunden-Sprints und Dehnen.</li><li><b>Rekordversuch</b> jederzeit, so oft du willst. Gibt keine Punkte, nur Abzeichen: beim Halten alle 30 s – 🥉 30 s, 🥈 1 Min., 🥇 1,5 Min., danach ein 🏆 für jede weitere halbe Minute (2 Min., 2,5 Min., 3 Min. … ohne Ende), bei Wiederholungen alle 5 oder 10.</li><li>Dein erster Versuch bleibt gespeichert – so siehst du, wie viel du zugelegt hast. Wer in der Gruppe vorne liegt, bekommt die 👑.</li><li><b>Fitness-Test:</b> Liegestütze, Plank, Wandsitzen, Hollow Body – einmal zum Start, einmal ab 27.12. Im Ranking zählt nur, um wie viel Prozent du dich verbessert hast.</li><li><b>Dehnen:</b> einzeln oder als Ablauf mit Ansage – zählt nicht, tut aber gut.</li></ul>')})();
 $("bRek").onclick=()=>rekOpen("h");$("rekX").onclick=()=>{$("rek").style.display="none"};
 $("rekdX").onclick=()=>{$("rekd").style.display="none"};
 
@@ -266,7 +268,7 @@ function rrTick(){if(!RR)return;const x=RR.x,now=Date.now();
   $("rrP").textContent=x.m==="h"?"HALTEN!":"ZÄHLEN!";
   if(x.m==="h"){const tr=Math.floor(s/30);
     if(RR.best&&s>RR.best&&!RR.saidRec){RR.saidRec=true;beep(1500,.2);rrSay("Neuer Rekord! Weiter!");$("rrI").textContent="🎉 Neuer Rekord läuft!"}
-    else if(tr>RR.lastTier){RR.lastTier=tr;beep(1000,.15);rrSay(tr*30+" Sekunden!"+(tr>tier(x,RR.best)?" Neues Abzeichen!":""));if(!RR.saidRec)$("rrI").textContent=badge(x,tr)+" geschafft"}}}
+    else if(tr>RR.lastTier){RR.lastTier=tr;beep(1000,.15);rrSay((tr*30<60?"30 Sekunden":fmtMin(tr).replace(" Min."," Minuten").replace(",5"," einhalb"))+"!"+(tr>tier(x,RR.best)?" Neues Abzeichen!":""));if(!RR.saidRec)$("rrI").textContent=badge(x,tr)+" geschafft"}}}
 function rrQuit(){if(!RR)return;clearInterval(RR.iv);RR=null;$("rr").style.display="none";say([],true);try{if(wl){wl.release();wl=null}}catch(e){}if($("rekd").style.display==="block")rekDetail($("rekd").dataset.k);else if($("rek").style.display==="block")rekRender()}
 function rrStop(){const x=RR.x,el=(Date.now()-RR.s0)/1000;RR.ph="end";RR.el=el;clearInterval(RR.iv);beep(500,.3);
   $("rr").className="";
