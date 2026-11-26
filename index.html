@@ -919,7 +919,7 @@ Object.assign(INFO,{
  curl:{so:["Normales Handtuch, ca. 1 m lang. Mit einem oder beiden Füßen mittig daraufstellen.","Die Enden mit beiden Händen greifen, Handflächen nach oben.","Ellbogen am Körper, Unterarme waagerecht (rechter Winkel).","Mit voller Kraft nach oben ziehen und halten."],key:"Der <b>Bizeps</b> arbeitet gegen dein eigenes Körpergewicht – das Handtuch gibt nicht nach.",wi:["Ellbogen bleiben eng am Körper","Aufrecht stehen, Bauch fest","Handgelenke gerade"],fe:["Schultern hochziehen","Ins Hohlkreuz lehnen"],lv:"Schwerer: Handtuch kürzer greifen. Auch einarmig möglich."},
  tpull:{so:["Normales Handtuch (ca. 1 m lang) schulterbreit greifen, Arme vor der Brust, Ellbogen leicht gebeugt.","Mit voller Kraft auseinanderziehen, als wolltest du es zerreißen.","Schulterblätter zusammenziehen und halten."],key:"Trainiert <b>hintere Schulter und oberen Rücken</b> – das Gegenstück zum Hände pressen.",wi:["Schultern unten lassen","Brust raus","Weiteratmen"],fe:["Nur mit den Händen ziehen statt aus dem Rücken","Schultern zu den Ohren"],lv:"Variante: Handtuch über dem Kopf auseinanderziehen."}
 });
-function renderExList(){const seen={};$("exList").innerHTML=Object.keys(EX).filter(k=>{const s=SKMAP[k];if(seen[s])return false;return seen[s]=1}).map(k=>'<div data-k="'+k+'"><svg class="sk exsk" data-k="'+k+'" viewBox="0 0 200 110">'+skSvg(k,"s")+'</svg><b>'+EX[k].n.replace(/ – .*/,"")+'</b><small>Erklärung ›</small></div>').join("");
+function renderExList(){const seen={};$("exList").innerHTML=Object.keys(EX).filter(k=>{if(EX[k].lib)return false;const s=SKMAP[k];if(seen[s])return false;return seen[s]=1}).map(k=>'<div data-k="'+k+'"><svg class="sk exsk" data-k="'+k+'" viewBox="0 0 200 110">'+skSvg(k,"s")+'</svg><b>'+EX[k].n.replace(/ – .*/,"")+'</b><small>Erklärung ›</small></div>').join("");
   $("exList").querySelectorAll("div[data-k]").forEach(el=>el.onclick=()=>showDetail(el.dataset.k))}
 const li=a=>a.map(x=>'<li>'+x+'</li>').join("");
 let exdLoop=0;
@@ -936,7 +936,7 @@ function showDetail(k){const I=INFO[SKMAP[k]],e=EX[k];if(!I)return;
 $("exdX").onclick=$("exdX2").onclick=()=>{$("exd").style.display="none";cancelAnimationFrame(exdLoop)};
 $("runSk").onclick=()=>{const st=steps[idx];if(running&&st)showDetail(st.ex)};
 function singleSec(k){for(const w of ["A","B","K"]){const f=W[w].s.find(x=>x[0]===k);if(f)return f[1]}return 30}
-function renderPick(){$("pickList").innerHTML=Object.keys(EX).map(k=>'<div data-k="'+k+'"><svg class="sk pksk" data-k="'+k+'" viewBox="0 0 200 110">'+skSvg(k,"e")+'</svg><b>'+EX[k].n+'</b><small><span data-i="'+k+'">ℹ️ Erklärung</span> · '+singleSec(k)+' s</small></div>').join("");
+function renderPick(){$("pickList").innerHTML=Object.keys(EX).filter(k=>!EX[k].lib).map(k=>'<div data-k="'+k+'"><svg class="sk pksk" data-k="'+k+'" viewBox="0 0 200 110">'+skSvg(k,"e")+'</svg><b>'+EX[k].n+'</b><small><span data-i="'+k+'">ℹ️ Erklärung</span> · '+singleSec(k)+' s</small></div>').join("");
   $("pickList").querySelectorAll("div[data-k]").forEach(el=>el.onclick=ev=>{const k=el.dataset.k;if(ev.target.dataset&&ev.target.dataset.i){showDetail(k);return}
     $("pick").style.display="none";const sec=singleSec(k);W.X={t:"Einzelübung",chair:k==="dips",s:k==="burst"?[["burst",5,15],["burst",5,15],["burst",5,0]]:[[k,sec,0]]};startChk("X")})}
 $("bSingle").onclick=()=>{renderPick();$("pick").style.display="block";$("pick").scrollTop=0};$("pickX").onclick=()=>{$("pick").style.display="none"};
@@ -1105,7 +1105,7 @@ function finish(){
   running=false;clearRun();musStop();clearInterval(timer);beep(1000,.2);setTimeout(()=>beep(1300,.4),250);
   try{if(wl)wl.release()}catch(e){}
   const p0=compute().pts,ez=easy&&isPlan(curW)?1:0;
-  const r=(curW==="X"?{txt:"🎯 Einzelübung – zählt nicht für Punkte."}:noPts?{txt:"📡 Ohne Verbindung trainiert – zählt nicht für Punkte. Stark war es trotzdem."}:curW==="C"?chalDone():markDay(curW))||{};
+  const r=(curW==="X"?{txt:W.X.dt||"🎯 Einzelübung – zählt nicht für Punkte."}:noPts?{txt:"📡 Ohne Verbindung trainiert – zählt nicht für Punkte. Stark war es trotzdem."}:curW==="C"?chalDone():markDay(curW))||{};
   setTimeout(()=>syncFinish(ez),300);
   const st=compute(),gain=st.pts-p0,gs=(gain>=0?"+":"")+gain+(Math.abs(gain)===1?" Punkt":" Punkte");
   easy=0;
@@ -1222,5 +1222,6 @@ chips("music",[0,.35,.7],musVol,v=>v===0?"aus":v===.35?"leise":"mittel",v=>{musV
 try{if(history.state&&history.state.cyf)history.replaceState(null,"")}catch(e){}
 setupVoice();renderMenu();initApi();checkResume();if(!API_URL&&!ls("helpSeen",0))showHelp();
 </script>
+<script src="rek.js?v=1"></script>
 </body>
 </html>
