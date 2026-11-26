@@ -77,6 +77,19 @@ const RPOSE={
 // Bewegungsabläufe mit mehreren Bildern (Liste aus [Pose, Dauer bis dorthin in ms, Beschriftung])
 {const D=RPOSE.dach,PU=POSE.push,up=PU.s,dn=PU.e,kn=D.s,rf=D.e,seq=[[up,500,"1 Liegestütz"],[dn,600,"1 Liegestütz"],[up,600,"1 Liegestütz"],[kn,800,"auf die Knie"]];
  for(let i=1;i<=4;i++)seq.push([rf,450,"Dach "+i],[kn,450,"Dach "+i]);seq.push([kn,500,"Stufe 2: 2 + 8 …"],[up,800,"Stufe 2: 2 + 8 …"]);D.seq=seq;D.fr=0}
+// Burpee, Strecksprung-Kniebeuge, Schulter-Tippen: echte Bewegungsabläufe (eigene Kopien, damit Seitenansicht bleibt)
+{const C=o=>JSON.parse(JSON.stringify(o)),PU=POSE.push,SQ=POSE.squat;
+ const stand={h:[100,14],f:[1,0],t:[100,24,100,58],a:[100,30,101,44,102,58],a2:[100,30,99,44,98,58],g:[100,58,102,78,103,98,114,99],g2:[100,58,98,78,97,98,108,99]};
+ const standUp={h:[100,14],f:[1,0],t:[100,24,100,58],a:[100,30,111,20,121,11],a2:[100,30,109,21,119,12],g:[100,58,102,78,103,98,114,99],g2:[100,58,98,78,97,98,108,99]};
+ const jumpUp={h:[100,8],f:[1,0],t:[100,18,100,52],a:[100,24,111,14,121,5],a2:[100,24,109,15,119,6],g:[100,52,101,71,102,89,108,93],g2:[100,52,99,71,99,89,104,93]};
+ const crouch={h:[154,56],f:[.55,.83],t:[140,64,112,76],a:[140,64,146,82,152,99],a2:[136,65,143,82,148,99],g:[112,76,134,82,116,97,127,99],g2:[112,76,131,84,113,97,124,99]};
+ const hi=C(PU.s),lo=C(PU.e);
+ RPOSE.burpee.seq=[[C(stand),500,""],[C(crouch),450,"Hände runter"],[C(hi),350,"Beine nach hinten"],[C(lo),500,"Liegestütz"],[C(hi),500,"Liegestütz"],[C(crouch),350,"Beine ran"],[C(standUp),380,""],[C(jumpUp),280,""],[C(standUp),280,""]];
+ const sqDn=C(SQ.e),sqUp={h:[100,7],f:[1,0],t:[100,17,100,51],a:[100,23,111,13,121,4],a2:[100,23,109,14,119,5],g:[100,51,102,71,103,90,110,94],g2:[100,51,99,71,99,90,106,94]};
+ const sqSt={h:[100,14],f:[1,0],t:[100,24,100,58],a:[100,30,111,20,121,11],a2:[100,30,109,21,119,12],g:[100,58,103,78,104,98,115,99],g2:[100,58,99,78,98,98,109,99]};
+ RPOSE.sqj={s:C(SQ.s),e:C(SQ.e),seq:[[sqDn,650,"Kniebeuge"],[sqSt,260,""],[C(sqUp),240,""],[C(sqSt),240,""],[C(sqDn),350,"weich landen"]]};
+ const base=C(PU.s),tapR=C(PU.s),tapL=C(PU.s);tapR.a=[150,58,138,72,146,60];tapL.a2=[146,59,136,72,148,60];
+ RPOSE.taps.seq=[[C(base),400,""],[tapR,450,"rechte Hand"],[C(base),400,""],[tapL,450,"linke Hand"]];}
 Object.assign(POSE,RPOSE);
 Object.assign(POSE,RPOSE);
 // ---------- Katalog: Rekorde & Dehnen (freiwillig, keine Punkte) ----------
@@ -124,7 +137,7 @@ const LIB=[
  {id:"mc",m:"r",p:"mc",n:"Bergsteiger",st:25,c:"Hohe Liegestützposition, Knie abwechselnd zur Brust. Jedes Knie zählt.",so:["Hohe Liegestützposition, Hände unter den Schultern.","Abwechselnd die Knie zur Brust ziehen.","Jedes Knie zählt eins. Hüfte bleibt unten."],tip:"Puls auf 180 in 60 Sekunden."},
  {id:"taps",m:"r",p:"taps",n:"Schulter-Tippen",st:10,c:"Hoher Liegestütz, abwechselnd mit einer Hand die andere Schulter antippen. Hüfte bleibt ruhig. Jedes Tippen zählt.",so:["Hohe Liegestützposition, Füße etwas breiter als hüftbreit.","Eine Hand hebt ab und tippt die gegenüberliegende Schulter an, dann zurück.","Abwechselnd links und rechts. Die Hüfte darf nicht hin und her schaukeln – jedes Tippen zählt eins."],tip:"Renegade Rows ohne Hanteln: trainiert Rumpf, Schultern und Stabilität. Schwerer: Füße enger zusammen."},
  {id:"burpee",m:"r",p:"burpee",n:"Burpees",st:5,c:"Runter in den Liegestütz, Beine ran, Strecksprung. Sauber und am Stück, Pause heißt Ende.",so:["Hände auf den Boden, Beine nach hinten in den Liegestütz.","Beine wieder ran.","Strecksprung mit Händen über dem Kopf. Zählt eins."],tip:"Der meistgehasste Sport der Welt. Zu Recht."},
- {id:"sqj",m:"r",p:"squat",n:"Strecksprung-Kniebeugen",st:10,c:"Kniebeuge, explosiv hochspringen, weich landen. Am Stück, bis nichts mehr geht.",so:["Kniebeuge bis die Oberschenkel waagerecht sind.","Explosiv hochspringen.","Weich landen und direkt in die nächste Kniebeuge."],tip:"Weich landen schont die Knie."},
+ {id:"sqj",m:"r",p:"sqj",n:"Strecksprung-Kniebeugen",st:10,c:"Kniebeuge, explosiv hochspringen, weich landen. Am Stück, bis nichts mehr geht.",so:["Kniebeuge bis die Oberschenkel waagerecht sind.","Explosiv hochspringen.","Weich landen und direkt in die nächste Kniebeuge."],tip:"Weich landen schont die Knie."},
  // --- Dehnen ---
  {id:"catcow",m:"s",p:"catcow",n:"Katze-Kuh",sec:40,c:"Vierfüßlerstand. Langsam abwechselnd Rücken rund machen und durchhängen lassen.",so:["Vierfüßlerstand, Hände unter den Schultern.","Einatmen: Bauch sinkt, Blick nach vorne (Kuh).","Ausatmen: Rücken rund, Kinn zur Brust (Katze). Langsam im Wechsel."],tip:"Perfekt morgens oder nach langem Sitzen."},
  {id:"child",m:"s",p:"child",n:"Kindhaltung",sec:40,c:"Auf die Fersen setzen, Oberkörper nach vorne ablegen, Arme lang.",so:["Knien, Po auf die Fersen.","Oberkörper nach vorne ablegen, Stirn auf den Boden.","Arme lang nach vorne, ruhig atmen."],tip:"Entspannt Rücken und Schultern."},
