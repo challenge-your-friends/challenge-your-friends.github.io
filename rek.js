@@ -134,7 +134,7 @@ const LIB=[
 const LIBK={};LIB.forEach(x=>LIBK[x.id]=x);
 const RK_MODE={h:"⏱ Halten",r:"🔁 Am Stück",r60:"⚡ 60 Sekunden",s:"🧘 Dehnen"};
 const MED=["🥉","🥈","🥇","🏆"];
-const RT0="2026-12-27",TEST=[{id:"pu",alt:"puk"},{id:"plank"},{id:"wallsit"},{id:"hollow"}];
+const RT0="2026-12-27",CH0="2026-12-01",TEST=[{id:"pu",alt:"puk"},{id:"plank"},{id:"wallsit"},{id:"hollow"}];
 // Dehnübungen für den Ablauf (Sprachansage, Skizze) anmelden
 LIB.filter(x=>x.m==="s"&&!x.ex).forEach(x=>{
   const reg=(k,suf,sv)=>{EX[k]={n:x.n+(suf?" – "+suf:""),c:x.c,hold:false,lib:1};SKMAP[k]=x.p;TXT["n_"+k]=x.n+(sv?", "+sv:"")+".";TXT["c_"+k]=x.c};
@@ -194,7 +194,7 @@ document.head.insertAdjacentHTML("beforeend",'<style>'+
 '</style>');
 document.body.insertAdjacentHTML("beforeend",
  '<div id="rek"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>🏆 Rekorde &amp; Dehnen</h1><button class="chip" id="rekX">Schließen ✕</button></div>'+
- '<p class="sub" id="rekSub" style="margin-bottom:10px"></p><div class="rkt" id="rekTabs"></div><div id="rekBody"></div></div></div>'+
+ '<div class="sub" id="rekSub" style="margin-bottom:10px"></div><div class="rkt" id="rekTabs"></div><div id="rekBody"></div></div></div>'+
  '<div id="rekd"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><span class="note" id="rekdM"></span><button class="chip" id="rekdX">Zurück ✕</button></div><div id="rekdB"></div></div></div>'+
  '<div id="rr"><div style="max-width:480px;margin:0 auto"><div id="rrP"></div><div id="rrN"></div><svg id="rrSk" class="sk" viewBox="0 0 200 110"></svg><div id="rrC"></div><div id="rrT">0</div><div id="rrI"></div><div id="rrB"></div></div></div>');
 // Einstieg unter den Workouts
@@ -202,7 +202,7 @@ document.body.insertAdjacentHTML("beforeend",
   const c=$("cal")&&$("cal").closest(".card");if(c)c.insertAdjacentHTML("afterend",'<div class="card" id="tutBox"></div>');
   $("tab-rank").insertAdjacentHTML("beforeend",'<div class="card" id="rkTut"></div><div class="card" id="rkRec"></div><div class="card" id="rkTst" style="display:none"></div>');
   const h=[...document.querySelectorAll("#help h2")].find(x=>/Steigern/.test(x.textContent));
-  if(h&&h.nextElementSibling)h.nextElementSibling.insertAdjacentHTML("afterend",'<h2>7. Rekorde &amp; Dehnen (freiwillig)</h2><ul><li>Unter dem Workout: <b>„🏆 Rekorde &amp; Dehnen“</b>. Über '+LIB.length+' Übungen mit Skizze – Halten auf Zeit, Wiederholungen am Stück, 60-Sekunden-Sprints und Dehnen.</li><li><b>Rekordversuch</b> jederzeit, so oft du willst. Gibt keine Punkte, nur Abzeichen: beim Halten alle 30 s – 🥉 30 s, 🥈 1 Min., 🥇 1,5 Min., danach ein 🏆 für jede weitere halbe Minute (2 Min., 2,5 Min., 3 Min. … ohne Ende), bei Wiederholungen alle 5 oder 10.</li><li>Dein erster Versuch bleibt gespeichert – so siehst du, wie viel du zugelegt hast. Wer in der Gruppe vorne liegt, bekommt die 👑.</li><li><b>Fitness-Test:</b> Liegestütze, Plank, Wandsitzen, Hollow Body – einmal zum Start, einmal ab 27.12. Im Ranking zählt nur, um wie viel Prozent du dich verbessert hast.</li><li><b>Dehnen:</b> einzeln oder als Ablauf mit Ansage – zählt nicht, tut aber gut.</li></ul>')})();
+  if(h&&h.nextElementSibling)h.nextElementSibling.insertAdjacentHTML("afterend",'<h2>7. Rekorde &amp; Dehnen (freiwillig)</h2><ul><li>Unter dem Workout: <b>„🏆 Rekorde &amp; Dehnen“</b>. Über '+LIB.length+' Übungen mit Skizze – Halten auf Zeit, Wiederholungen am Stück, 60-Sekunden-Sprints und Dehnen.</li><li><b>Rekordversuch</b> jederzeit, so oft du willst. Gibt keine Punkte, nur Abzeichen: beim Halten alle 30 s – 🥉 30 s, 🥈 1 Min., 🥇 1,5 Min., danach ein 🏆 für jede weitere halbe Minute (2 Min., 2,5 Min., 3 Min. … ohne Ende), bei Wiederholungen alle 5 oder 10.</li><li>Dein erster Versuch bleibt gespeichert – so siehst du, wie viel du zugelegt hast. Wer in der Gruppe vorne liegt, bekommt die 👑.</li><li><b>Fitness-Test:</b> Liegestütze, Plank, Wandsitzen, Hollow Body – am 1.12. Pflicht vor dem ersten Workout, ab 27.12. freiwillig der Abschlusstest Im Ranking zählt nur, um wie viel Prozent du dich verbessert hast.</li><li><b>Dehnen:</b> einzeln oder als Ablauf mit Ansage – zählt nicht, tut aber gut.</li></ul>')})();
 $("bRek").onclick=()=>rekOpen("h");$("rekX").onclick=()=>{$("rek").style.display="none"};
 $("rekdX").onclick=()=>{$("rekd").style.display="none"};
 
@@ -215,7 +215,10 @@ function rekOpen(t){rekTab=t||rekTab;$("rek").style.display="block";$("rek").scr
 function animAll(sel,stopIf){cancelAnimationFrame(rkLoop);const t0=performance.now();const f=now=>{if(stopIf())return;const x=loopX(now-t0);
   document.querySelectorAll(sel).forEach(el=>{const P=POSE[el.dataset.p];if(P)el.innerHTML=poseAt(P,now-t0)});rkLoop=requestAnimationFrame(f)};rkLoop=requestAnimationFrame(f)}
 function rekRender(){const rec=myRec(),cr=crowns(),nb=badgeCount(rec),nr=Object.keys(rec).filter(k=>LIBK[k]).length;
-  $("rekSub").innerHTML="Freiwillig, keine Punkte – nur Abzeichen und Ehre. <b>"+nr+"</b> Rekorde · <b>"+nb+"</b> Abzeichen";
+  $("rekSub").innerHTML='<div class="banner info" style="margin:0 0 6px;line-height:1.5">💡 <b>Was ist das hier?</b><br>Hier testest du deine persönliche Fitness: Wie lange hältst du die Plank? Wie viele Liegestütze schaffst du am Stück? Am besten einmal <b>zum Start der Challenge</b> und nochmal <b>am Ende</b> – dann siehst du schwarz auf weiß, was der Dezember gebracht hat.<br><small>Freiwillig, jederzeit, so oft du willst. Gibt keine Punkte – nur Abzeichen, neue Bestwerte und Ehre. Dein erster Versuch wird als Startwert gespeichert.</small></div>'+
+    (nr?'':'<button class="rrb" id="rekFirst" style="font-size:17px">💪 Starte deinen ersten Rekordversuch:<br>Wie viele Liegestütze schaffst du?</button>')+
+    '<span class="note">Bisher: <b>'+nr+'</b> Rekorde · <b>'+nb+'</b> Abzeichen</span>';
+  if($("rekFirst"))$("rekFirst").onclick=()=>rekDetail("pu");
   const tabs=[["h","⏱ Halten"],["r","🔁 Am Stück"],["r60","⚡ 60 s"],["s","🧘 Dehnen"],["t","📏 Test"]];
   $("rekTabs").innerHTML=tabs.map(t=>'<button class="chip'+(t[0]===rekTab?" on":"")+'" data-t="'+t[0]+'">'+t[1]+'</button>').join("");
   $("rekTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{rekTab=b.dataset.t;rekRender()});
@@ -308,9 +311,10 @@ const tstDone=o=>!!(o&&TEST.every(e=>o[e.id]!==undefined));
 function tstSet(ph,id,v){const T=myTst();T[ph]=T[ph]||{};T[ph][id==="puk"?"pu":id]=v;if(id==="puk"||id==="pu")T[ph].k=id==="puk"?1:0;if(!T[ph].d)T[ph].d=todayK();state.ch.tst=T}
 function tstHtml(full){const T=myTst(),ph=tstPhase(),o=T[ph]||{},t=todayK(),done=tstDone(o);
   if(!full&&done)return "";
-  if(!full)return '<div class="banner info" id="tstOpen" style="cursor:pointer;margin-bottom:10px">📏 <b>'+(ph==="t0"?"Starttest":"Abschlusstest")+'</b> (freiwillig, ca. 8 Min.) – '+(ph==="t0"?"wie fit bist du am Start? ":"wie viel hat der Dezember gebracht? ")+'<b>'+TEST.filter(e=>o[e.id]!==undefined).length+'/4</b> ›</div>';
-  let h='<div class="card"><h3 style="margin-bottom:4px">📏 '+(ph==="t0"?"Starttest":"Abschlusstest")+' <span style="font-size:12px;color:var(--mut);font-weight:400">freiwillig · ca. 8 Min.</span></h3>';
-  h+='<p class="note" style="margin:0 0 6px">'+(ph==="t0"?(done?"✅ Starttest erledigt. Am <b>27.12.</b> wird der Abschlusstest freigeschaltet – dann siehst du, um wie viel Prozent du besser geworden bist."+(t<="2026-12-07"?" Bis 7.12. kannst du einzelne Tests noch wiederholen.":""):"4 Übungen, jeweils bis nichts mehr geht. Dazwischen so lange Pause, wie du brauchst. Am 27.12. kommt derselbe Test nochmal – im Ranking zählt nur, um wie viel Prozent du dich verbessert hast."):"Derselbe Test wie am Anfang. Jetzt zeigt sich, was der Dezember gebracht hat!")+'</p>';
+  const must=ph==="t0"&&t>=CH0,lab=ph==="t0"?(must?"Pflicht vor dem ersten Workout":t<CH0?"ab 1.12. Pflicht vor dem ersten Workout":"freiwillig"):"freiwillig";
+  if(!full)return '<div class="banner info" id="tstOpen" style="cursor:pointer;margin-bottom:10px;border:2px solid '+(must?"var(--warn)":"var(--acc)")+'">📏 <b>'+(ph==="t0"?"Starttest":"Abschlusstest")+'</b> <small>('+lab+', ca. 8 Min.)</small><br>'+(ph==="t0"?"Wie fit bist du am Start? ":"Wie viel hat der Dezember gebracht? ")+'<b>'+TEST.filter(e=>o[e.id]!==undefined).length+'/4</b> erledigt ›</div>';
+  let h='<div class="card"><h3 style="margin-bottom:4px">📏 '+(ph==="t0"?"Starttest":"Abschlusstest")+' <span style="font-size:12px;color:var(--mut);font-weight:400">'+lab+' · ca. 8 Min.</span></h3>';
+  h+='<p class="note" style="margin:0 0 6px">'+(ph==="t0"?(done?"✅ Starttest erledigt. Ab <b>27.12.</b> gibt es freiwillig den Abschlusstest – dann siehst du, um wie viel Prozent du besser geworden bist."+(t<="2026-12-07"?" Bis 7.12. kannst du einzelne Tests noch wiederholen.":""):"4 Übungen, jeweils bis nichts mehr geht. Dazwischen so lange Pause, wie du brauchst. Ab 27.12. kannst du freiwillig denselben Test nochmal machen – im Ranking zählt nur, um wie viel Prozent du dich verbessert hast."):"Derselbe Test wie am Anfang. Jetzt zeigt sich, was der Dezember gebracht hat!")+'</p>';
   const kk=ph==="t1"?(T.t0&&T.t0.k):o.k;
   TEST.forEach(e=>{const id=e.id==="pu"&&kk?"puk":e.id,x=LIBK[id],v=o[e.id],v0=T.t0&&T.t0[e.id],open=ph==="t1"||v===undefined||t<="2026-12-07";
     const nm=e.id==="pu"?"Liegestütze am Stück"+(kk&&(v!==undefined||ph==="t1")?" (Knie)":""):x.n;
@@ -326,7 +330,7 @@ function tstBind(el){el.querySelectorAll("button[data-tx]").forEach(b=>b.onclick
 
 // ---------- Ranking & Startseite ----------
 function rekMenu(){const rec=myRec();myTst();const nb=badgeCount(rec),nr=Object.keys(rec).filter(k=>LIBK[k]).length;
-  if($("bRekS"))$("bRekS").textContent=LIB.length+" Übungen · Rekordversuch jederzeit · "+(nr?nr+" Rekorde, "+nb+" Abzeichen":"noch keine Rekorde");
+  if($("bRekS"))$("bRekS").textContent=LIB.length+" Übungen · Rekordversuch jederzeit · "+(nr?nr+" Rekorde, "+nb+" Abzeichen":"teste deine Fitness – jetzt ersten Rekord aufstellen");
   if($("tstBox")){$("tstBox").innerHTML=tstHtml(false);const o=$("tstOpen");if(o)o.onclick=()=>rekOpen("t")}
   const me={days:state.days,ch:state.ch,start:state.start},m0=todayK().slice(0,8)+"01",all=people().reduce((a,u)=>a+tut(u),0);
   if($("tutBox"))$("tutBox").innerHTML='<h3>⏱ Zeit unter Spannung</h3><div class="tutb"><div><b>'+fmtH(tut(me,m0))+'</b><span>diesen Monat</span></div><div><b>'+fmtH(tut(me))+'</b><span>insgesamt</span></div><div><b>'+fmtH(all)+'</b><span>ganze Gruppe</span></div></div><p class="note" style="margin-top:8px">Alle Sekunden, in denen du gehalten, gedrückt oder gezählt hast – Workouts, Challenges und Rekordversuche (Pausen zählen nicht).</p>'}
@@ -343,3 +347,8 @@ function rekRank(){if(!$("rkTut"))return;const P=people(),rows=P.map(u=>({n:u.na
 {const _rm=renderMenu;renderMenu=function(){_rm.apply(this,arguments);try{rekMenu()}catch(e){console.error(e)}};
  const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{rekRank();rekMenu()}catch(e){console.error(e)}}}
 try{renderMenu()}catch(e){}
+
+// ---------- Starttest-Pflicht ab 1.12. (vor dem ersten Workout / der ersten Challenge) ----------
+{const _st=start;start=function(k){if(k!=="X"&&todayK()>=CH0&&!tstDone(myTst().t0)){
+  ask("📏 <b>Erst der Starttest!</b><br>Bevor die Challenge losgeht, einmal kurz testen, wo du stehst: 4 Übungen, jeweils so lange bzw. so oft du kannst – ca. 8 Min.<br><br>Ab 27.12. kannst du freiwillig den Abschlusstest machen und siehst, um wie viel Prozent du besser geworden bist.",()=>rekOpen("t"),null,"Zum Starttest","Später");return}
+  return _st.apply(this,arguments)}}
