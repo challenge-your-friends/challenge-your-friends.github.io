@@ -142,7 +142,7 @@ const LIB=[
  {id:"deep",m:"s",p:"deep",n:"Russenhocke",sec:40,c:"Füße schulterbreit, ganz tief in die Hocke, Ellbogen drücken die Knie auseinander.",so:["Füße etwas breiter als die Schultern.","Ganz tief in die Hocke, Fersen bleiben möglichst am Boden.","Hände zusammen, Ellbogen drücken die Knie auseinander."],tip:"Die Russenhocke – Grillparty-Klassiker und beste Dehnung für Hüfte und Sprunggelenke. Fersen heben ab? Ein Buch drunter ist okay."}
 ];
 const LIBK={};LIB.forEach(x=>LIBK[x.id]=x);
-const RK_MODE={h:"⏱ Halten",r:"🔁 Am Stück",r60:"⚡ 60 Sekunden",s:"🧘 Dehnen"};
+const RK_MODE={h:"⏱ Halten",r:"🔥 Bis zum Limit",r60:"⚡ 60 Sekunden",s:"🧘 Dehnen"};
 const MED=["🥉","🥈","🥇","🏆"];
 const RT0="2026-12-27",CH0="2026-12-01",TEST=[{id:"pu",alt:"puk"},{id:"plank"},{id:"wallsit"},{id:"hollow"}];
 // Dehnübungen für den Ablauf (Sprachansage, Skizze) anmelden
@@ -229,7 +229,7 @@ function rekRender(){const rec=myRec(),cr=crowns(),nb=badgeCount(rec),nr=Object.
     (nr?'':'<button class="rrb" id="rekFirst" style="font-size:17px">💪 Starte deinen ersten Rekordversuch:<br>Wie viele Liegestütze schaffst du?</button>')+
     '<span class="note">Bisher: <b>'+nr+'</b> Rekorde · <b>'+nb+'</b> Abzeichen</span>';
   if($("rekFirst"))$("rekFirst").onclick=()=>rekDetail("pu");
-  const tabs=[["h","⏱ Halten"],["r","🔁 Am Stück"],["s","🧘 Dehnen"],["t","📏 Test"]];
+  const tabs=[["h","⏱ Halten"],["r","🔥 Bis zum Limit"],["s","🧘 Dehnen"],["t","📏 Test"]];
   $("rekTabs").innerHTML=tabs.map(t=>'<button class="chip'+(t[0]===rekTab?" on":"")+'" data-t="'+t[0]+'">'+t[1]+'</button>').join("");
   $("rekTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{rekTab=b.dataset.t;rekRender()});
   let h="";
