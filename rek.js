@@ -27,8 +27,9 @@ const RPOSE={
  rdl1:{s:{h:[100,14],f:[1,0],t:[100,24,100,58],a:[100,30,101,44,102,58],a2:[100,30,99,44,98,58],g:[100,58,102,78,103,98,114,99],g2:[100,58,98,78,97,98,108,99]},
        e:{h:[133,46],f:[1,.35],t:[122,50,90,58],a:[122,52,122,66,122,80],a2:[120,53,120,67,120,81],g:[90,58,97,78,99,98,110,99],g2:[90,58,68,55,46,52,42,56]}},
  // Das Dach brennt: Kniestand, Arme 90° -> V über dem Kopf
- dach:{fr:1,d:RTXT(150,96,"auf den Knien"),s:{h:[100,30],f:[0,0],t:[100,40,100,72],a:[100,46,78,46,78,26],a2:[100,46,122,46,122,26],g:[100,72,96,88,95,99],g2:[100,72,104,88,105,99]},
-       e:{h:[100,30],f:[0,0],t:[100,40,100,72],a:[100,46,76,30,100,5],a2:[100,46,124,30,100,5],g:[100,72,96,88,95,99],g2:[100,72,104,88,105,99]},d2:RTXT(146,14,"Dach!")},
+ // Das Dach brennt: Liegestütz -> auf die Knie -> 4 Dächer (Arme 90° -> V über dem Kopf) -> zurück
+ dach:{fr:1,s:{h:[100,30],f:[0,0],t:[100,40,100,72],a:[100,46,78,46,78,26],a2:[100,46,122,46,122,26],g:[100,72,96,88,95,99,95,99],g2:[100,72,104,88,105,99,105,99]},
+       e:{h:[100,30],f:[0,0],t:[100,40,100,72],a:[100,46,76,30,100,5],a2:[100,46,124,30,100,5],g:[100,72,96,88,95,99,95,99],g2:[100,72,104,88,105,99,105,99]}},
  // Hampelmann (Front)
  jj:{fr:1,s:{h:[100,18],f:[0,0],t:[100,28,100,62],a:[100,34,94,48,92,62],a2:[100,34,106,48,108,62],g:[100,62,97,80,96,99],g2:[100,62,103,80,104,99]},
      e:{h:[100,14],f:[0,0],t:[100,24,100,58],a:[100,30,86,16,80,4],a2:[100,30,114,16,120,4],g:[100,58,86,76,76,95],g2:[100,58,114,76,124,95]}},
@@ -66,6 +67,10 @@ const RPOSE={
  deep:{s:{h:[100,14],f:[1,0],t:[100,24,100,58],a:[100,30,101,44,102,58],a2:[100,30,99,44,98,58],g:[100,58,102,78,103,98,114,99],g2:[100,58,98,78,97,98,108,99]},
        e:{h:[110,44],f:[1,0],t:[106,54,94,86],a:[106,58,118,72,112,62],a2:[104,59,116,73,110,63],g:[94,86,118,72,104,98,115,99],g2:[94,86,114,74,100,98,111,99]}}
 };
+// Bewegungsabläufe mit mehreren Bildern (Liste aus [Pose, Dauer bis dorthin in ms, Beschriftung])
+{const D=RPOSE.dach,PU=POSE.push,up=PU.s,dn=PU.e,kn=D.s,rf=D.e,seq=[[up,500,"1 Liegestütz"],[dn,600,"1 Liegestütz"],[up,600,"1 Liegestütz"],[kn,800,"auf die Knie"]];
+ for(let i=1;i<=4;i++)seq.push([rf,450,"Dach "+i],[kn,450,"Dach "+i]);seq.push([kn,500,"Stufe 2: 2 + 8 …"],[up,800,"Stufe 2: 2 + 8 …"]);D.seq=seq;D.fr=0}
+Object.assign(POSE,RPOSE);
 Object.assign(POSE,RPOSE);
 // ---------- Katalog: Rekorde & Dehnen (freiwillig, keine Punkte) ----------
 // m: h = Halten (Zeit), r = Wiederholungen am Stück, r60 = Wiederholungen in 60 s, s = Dehnen
@@ -104,7 +109,7 @@ const LIB=[
  {id:"brg",m:"r",p:"bridge",n:"Hüftheben",st:10,c:"Po hoch bis zur Linie, oben kurz anspannen, ablegen.",so:["Rückenlage, Füße aufstellen.","Po hoch, oben kurz fest anspannen.","Ablegen und wieder hoch."],tip:"Einbeinig doppelt so viel Spaß."},
  {id:"calfr",m:"r",p:"calf",n:"Wadenheben",st:10,c:"Ganz hoch auf die Zehenspitzen, ganz runter.",so:["Hände leicht an die Wand.","Ganz hoch auf die Zehenspitzen.","Langsam ganz runter. Wiederholen."],tip:"Auf einer Treppenstufe noch effektiver."},
  {id:"supr",m:"r",p:"superman",n:"Superman-Heben",st:10,c:"Bauchlage, Arme und Beine anheben, kurz halten, ablegen.",so:["Bauchlage, Arme lang nach vorne.","Arme und Beine anheben, 1 Sekunde halten.","Ablegen, wiederholen."],tip:"Rücken stark, Haltung top."},
- {id:"dach",m:"r",p:"dach",n:"Das Dach brennt",u:"st",st:1,c:"Stufe für Stufe: n Liegestütze auf den Knien, dann 4 mal n Dächer. Hoch bis nichts mehr geht.",so:["Stufe 1: 1 Liegestütz (auf den Knien), dann im Kniestand 4 Dächer.","Dach = Arme 90° angewinkelt, Oberarme waagerecht – dann V-förmig hoch, Hände über dem Kopf zusammen.","Stufe 2: 2 Liegestütze + 8 Dächer, Stufe 3: 3 + 12 … Rekord = höchste komplett geschaffte Stufe."],tip:"Direkt aus dem Mannschaftstraining. Ab Stufe 6 brennt das Dach wirklich."},
+ {id:"dach",m:"r",p:"dach",n:"Das Dach brennt",u:"st",st:1,c:"Pyramide: Stufe 1 ist eine Liegestütze, dann auf die Knie und vier Dächer. Stufe 2: zwei Liegestütze und acht Dächer. Hoch bis zur Spitze und wieder runter bis eins.",so:["Stufe 1: 1 Liegestütz, dann auf die Knie und 4 Dächer. Dach = Arme 90° angewinkelt, Oberarme waagerecht – dann V-förmig hoch, Hände über dem Kopf zusammen.","Stufe 2: 2 Liegestütze + 8 Dächer, Stufe 3: 3 + 12, Stufe 4: 4 + 16 … immer weiter hoch.","An der Spitze geht's wieder runter, z. B. 1-2-3-4-5-4-3-2-1. Rekord = deine Spitzenstufe – zählt nur, wenn du auch wieder bis 1 runter geschafft hast."],tip:"Direkt aus dem Mannschaftstraining. Ab Stufe 5 brennt das Dach wirklich."},
  // --- In 60 Sekunden ---
  {id:"jj",m:"r60",p:"jj",n:"Hampelmann",st:10,c:"60 Sekunden so viele Hampelmänner wie möglich. Mitzählen!",so:["Beine zusammen, Arme unten.","Springen: Beine auseinander, Arme über den Kopf.","Zurück. Jeder komplette Hampelmann zählt."],tip:"Nachbarn unten? Dann auf dem Teppich."},
  {id:"mc",m:"r60",p:"mc",n:"Bergsteiger",st:10,c:"Hohe Liegestützposition, Knie abwechselnd zur Brust. Jedes Knie zählt.",so:["Hohe Liegestützposition, Hände unter den Schultern.","Abwechselnd die Knie zur Brust ziehen.","Jedes Knie zählt eins. Hüfte bleibt unten."],tip:"Puls auf 180 in 60 Sekunden."},
@@ -124,7 +129,7 @@ const LIB=[
  {id:"shoulder",m:"s",p:"shoulder",n:"Schulter",sec:30,sd:1,c:"Einen Arm vor der Brust zur anderen Seite ziehen.",so:["Einen Arm gestreckt vor die Brust.","Mit der anderen Hand am Oberarm heranziehen.","Schulter bleibt unten."],tip:"Gut nach Liegestützen und Handtuch-Übungen."},
  {id:"tri",m:"s",p:"tri",n:"Trizeps",sec:30,sd:1,c:"Einen Arm hinter den Kopf, mit der anderen Hand den Ellbogen sanft ziehen.",so:["Einen Arm hoch, Hand hinter den Kopf zwischen die Schulterblätter.","Mit der anderen Hand den Ellbogen sanft ziehen.","Kopf bleibt aufrecht."],tip:"Nach Dips Pflicht."},
  {id:"sides",m:"s",p:"sides",n:"Seitdehnung",sec:25,sd:1,c:"Beide Arme hoch, Oberkörper zur Seite neigen.",so:["Aufrecht stehen, Arme über den Kopf.","Oberkörper zur Seite neigen.","Nicht nach vorne kippen."],tip:"Atmen in die gedehnte Seite."},
- {id:"deep",m:"s",p:"deep",n:"Tiefe Hocke",sec:40,c:"Füße schulterbreit, ganz tief in die Hocke, Ellbogen drücken die Knie auseinander.",so:["Füße etwas breiter als die Schultern.","Ganz tief in die Hocke, Fersen bleiben möglichst am Boden.","Hände zusammen, Ellbogen drücken die Knie auseinander."],tip:"Fersen heben ab? Ein Buch drunter ist okay."}
+ {id:"deep",m:"s",p:"deep",n:"Russenhocke",sec:40,c:"Füße schulterbreit, ganz tief in die Hocke, Ellbogen drücken die Knie auseinander.",so:["Füße etwas breiter als die Schultern.","Ganz tief in die Hocke, Fersen bleiben möglichst am Boden.","Hände zusammen, Ellbogen drücken die Knie auseinander."],tip:"Die Russenhocke – Grillparty-Klassiker und beste Dehnung für Hüfte und Sprunggelenke. Fersen heben ab? Ein Buch drunter ist okay."}
 ];
 const LIBK={};LIB.forEach(x=>LIBK[x.id]=x);
 const RK_MODE={h:"⏱ Halten",r:"🔁 Am Stück",r60:"⚡ 60 Sekunden",s:"🧘 Dehnen"};
@@ -202,9 +207,13 @@ $("bRek").onclick=()=>rekOpen("h");$("rekX").onclick=()=>{$("rek").style.display
 $("rekdX").onclick=()=>{$("rekd").style.display="none"};
 
 let rekTab="h",rkLoop=0;
+// Bild zum Zeitpunkt ms: Bewegungsablauf (seq) oder einfaches Hin und Her
+function poseAt(P,ms,hold){if(P.seq){const S=P.seq,tot=S.reduce((a,x)=>a+x[1],0);let t=ms%tot,i=0;while(t>S[i][1]){t-=S[i][1];i++}const a=S[(i+S.length-1)%S.length][0],b=S[i][0],x=t/S[i][1],e=x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  return skDraw(Object.assign({},P,{fr:b===P.s||b===P.e?1:0}),lerpP(a,b,e),false)+'<text x="100" y="12" fill="var(--warn)" font-size="11" font-weight="700" text-anchor="middle">'+S[i][2]+'</text>'}
+  const x=hold?1:loopX(ms);return skDraw(P,lerpP(P.s,P.e,x),x>.99)}
 function rekOpen(t){rekTab=t||rekTab;$("rek").style.display="block";$("rek").scrollTop=0;rekRender()}
 function animAll(sel,stopIf){cancelAnimationFrame(rkLoop);const t0=performance.now();const f=now=>{if(stopIf())return;const x=loopX(now-t0);
-  document.querySelectorAll(sel).forEach(el=>{const P=POSE[el.dataset.p];if(P)el.innerHTML=skDraw(P,lerpP(P.s,P.e,x),x>.99)});rkLoop=requestAnimationFrame(f)};rkLoop=requestAnimationFrame(f)}
+  document.querySelectorAll(sel).forEach(el=>{const P=POSE[el.dataset.p];if(P)el.innerHTML=poseAt(P,now-t0)});rkLoop=requestAnimationFrame(f)};rkLoop=requestAnimationFrame(f)}
 function rekRender(){const rec=myRec(),cr=crowns(),nb=badgeCount(rec),nr=Object.keys(rec).filter(k=>LIBK[k]).length;
   $("rekSub").innerHTML="Freiwillig, keine Punkte – nur Abzeichen und Ehre. <b>"+nr+"</b> Rekorde · <b>"+nb+"</b> Abzeichen";
   const tabs=[["h","⏱ Halten"],["r","🔁 Am Stück"],["r60","⚡ 60 s"],["s","🧘 Dehnen"],["t","📏 Test"]];
@@ -253,7 +262,7 @@ async function rrStart(x,test){await unlockAudio();lock();
   $("rrB").innerHTML='<button class="rrb sec" id="rrQ">Abbrechen</button>';$("rrQ").onclick=rrQuit;
   clearInterval(RR.iv);RR.iv=setInterval(rrTick,100);rrTick();
   const P=POSE[x.p],t0=performance.now();cancelAnimationFrame(rkLoop);
-  const f=now=>{if(!RR||$("rr").style.display==="none")return;let w;if(RR.ph==="prep"&&(RR.t0-Date.now())>4000)w=loopX(now-t0);else w=x.m==="h"?1:loopX(now-t0);$("rrSk").innerHTML=skDraw(P,lerpP(P.s,P.e,w),w>.99);rkLoop=requestAnimationFrame(f)};rkLoop=requestAnimationFrame(f)}
+  const f=now=>{if(!RR||$("rr").style.display==="none")return;const hold=x.m==="h"&&!(RR.ph==="prep"&&(RR.t0-Date.now())>4000);$("rrSk").innerHTML=poseAt(P,now-t0,hold);rkLoop=requestAnimationFrame(f)};rkLoop=requestAnimationFrame(f)}
 function rrTick(){if(!RR)return;const x=RR.x,now=Date.now();
   if(RR.ph==="prep"){const r=Math.ceil((RR.t0-now)/1000);$("rrP").textContent="GLEICH GEHT'S LOS";$("rrT").textContent=Math.max(0,r);
     if(r<=3&&r>0&&RR.cd!==r){RR.cd=r;beep(700,.12);if(!quiet)rrSay(String(r))}
