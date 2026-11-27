@@ -1028,7 +1028,7 @@ async function start(k,np){
   lock();
   await p;
   enter();
-  lastTick=Date.now();clearInterval(timer);timer=setInterval(tick,100);history.pushState({cyf:1},"");saveRun();
+  lastTick=Date.now();clearInterval(timer);timer=setInterval(tick,100);backGuard();saveRun();
 }
 function enter(){
   const st=steps[idx];said={};remain=st.sec;total=st.sec;
@@ -1053,14 +1053,38 @@ function once(k,f){if(!said[k]){said[k]=1;f()}}
 // ---------- Schutz: Workout überlebt Neuladen, Zurück-Taste und versehentliches Schließen ----------
 let sidV,lastSave=0;
 function saveRun(){if(!running)return;lastSave=Date.now();lsSet("run",{d:todayK(),at:Date.now(),k:curW,steps,idx,remain,easy,noPts,chal:curW==="C"?curChal:null,sid:sidV,net:!!sidP||sidV!==undefined})}
-function clearRun(){try{localStorage.removeItem("run")}catch(e){}if(history.state&&history.state.cyf)history.back()}
+function clearRun(){try{localStorage.removeItem("run")}catch(e){}}
 function pauseNow(){if(running&&!paused){paused=true;musOn(false);$("bPause").textContent="Weiter ▶";say([],true)}saveRun()}
 function unpause(){paused=false;lastTick=Date.now();$("bPause").textContent="Pause";musOn(steps[idx]&&steps[idx].type==="work")}
 function confirmStop(){if(!running)return;const was=paused;pauseNow();
   ask(curW==="C"?"Challenge <b>nicht geschafft</b>? Dann gibt es keine Punkte – du kannst es später nochmal versuchen.":"⚠️ <b>Workout wirklich abbrechen?</b><br>Dann ist dein Fortschritt weg und das Workout zählt nicht.",
    stop,()=>{if(!was)unpause()},curW==="C"?"Ja, nicht geschafft":"Ja, abbrechen","Nein, weitermachen")}
 window.addEventListener("beforeunload",e=>{if(running){saveRun();e.preventDefault();e.returnValue=""}});
-window.addEventListener("popstate",()=>{if(running){history.pushState({cyf:1},"");confirmStop()}});
+// ---------- Android-Zurück-Taste: erst Fenster schließen, dann Startseite, dann 2× zum Beenden ----------
+let exitArm=null;
+function backGuard(){try{if(!(history.state&&history.state.cyf))history.pushState({cyf:1},"")}catch(e){}}
+function isOpen(id){const el=$(id);return !!el&&getComputedStyle(el).display!=="none"}
+function toast(t){let el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.style.cssText="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#2a2e37;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.5);transition:opacity .3s;pointer-events:none";document.body.appendChild(el)}
+  el.textContent=t;el.style.opacity="1";clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity="0",2200)}
+function backStep(){
+  if(isOpen("modal")){$("mNo").click();return true}
+  if(isOpen("rr")){if(typeof RR!=="undefined"&&RR){toast("Rekordversuch läuft – zum Abbrechen den Knopf unten nutzen");return true}
+    if($("rrQ"))$("rrQ").click();else $("rr").style.display="none";return true}
+  const X=[["exd","exdX"],["rekd","rekdX"],["rek","rekX"],["sv","svX"],["fb","fbX"],["rem","remX"],["acc","accX"],["pv","pvX"],["pick","pickX"],["help","helpX"]];
+  for(const [o,x] of X)if(isOpen(o)){if($(x))$(x).click();else $(o).style.display="none";return true}
+  if(isOpen("login"))return false;
+  if(isOpen("done")){$("bBack").click();return true}
+  const tb=document.querySelector('#menu .tabs button[data-t="train"]');
+  if(tb&&!tb.classList.contains("on")){tb.click();window.scrollTo(0,0);return true}
+  if(window.scrollY>200){window.scrollTo({top:0,behavior:"smooth"});return true}
+  return false}
+window.addEventListener("popstate",()=>{
+  if(exitArm){clearTimeout(exitArm);exitArm=null}
+  if(running){backGuard();confirmStop();return}
+  if(backStep()){backGuard();return}
+  // Startseite: einmal Hinweis, beim zweiten Druck schließt Android die App
+  toast("Nochmal Zurück drücken zum Schließen");
+  exitArm=setTimeout(()=>{exitArm=null;backGuard()},2500)});
 function checkResume(){const r=ls("run",null);if(!r)return;
   if(!r.steps||r.d!==todayK()||Date.now()-r.at>6*3600e3||r.idx>=r.steps.length){clearRun();return}
   const w=r.steps.filter(x=>x.type==="work").length,dn=r.steps.slice(0,r.idx).filter(x=>x.type==="work").length;
@@ -1072,7 +1096,7 @@ async function resumeRun(r){curW=r.k;steps=r.steps;idx=r.idx;easy=r.easy||0;noPt
   $("bEasy").style.display=isPlan(curW)&&!easy?"block":"none";$("bStop").textContent=curW==="C"?"❌ Nicht geschafft":"Stopp";
   running=true;paused=true;$("bPause").textContent="Weiter ▶";
   $("menu").style.display="none";$("done").style.display="none";$("run").style.display="block";
-  history.pushState({cyf:1},"");lock();await p;
+  backGuard();lock();await p;
   enter();say([],true);musOn(false);remain=Math.max(1,r.remain);render();
   lastTick=Date.now();clearInterval(timer);timer=setInterval(tick,100);saveRun();
   if(noPts)setSync("⚠️ Start nicht beim Server angekommen – dieses Workout zählt nicht.")}
@@ -1221,7 +1245,8 @@ $("bBack").onclick=()=>{$("done").style.display="none";$("menu").style.display="
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&running){pauseNow()}
 if(document.visibilityState==="visible"){if(running)lock();else renderMenu()}});
 chips("music",[0,.35,.7],musVol,v=>v===0?"aus":v===.35?"leise":"mittel",v=>{musVol=v;lsSet("musvol",v);if(!v)musStop();else musApply()});
-try{if(history.state&&history.state.cyf)history.replaceState(null,"")}catch(e){}
+backGuard();document.addEventListener("pointerdown",backGuard,{once:true});
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 setupVoice();renderMenu();initApi();checkResume();if(!API_URL&&!ls("helpSeen",0))showHelp();
 </script>
 <script src="rek.js?v=3"></script>
