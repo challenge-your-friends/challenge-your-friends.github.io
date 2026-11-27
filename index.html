@@ -255,13 +255,12 @@ select.txt{appearance:auto}
 <div class="card" id="pvSum"></div>
 <div class="card"><h3>📏 Start</h3><div class="pvg"><label>Geschlecht</label><select class="txt" id="pvSex"><option value="">keine Angabe</option><option value="m">Mann</option><option value="w">Frau</option><option value="d">divers</option></select></div>
 <div class="pvg2"><div><label>Größe (cm)</label><input class="txt" id="pvH" inputmode="numeric" maxlength="3" placeholder="z. B. 180"></div><div><label>Startgewicht (kg)</label><input class="txt" id="pvW0" inputmode="decimal" maxlength="5" placeholder="z. B. 85"></div></div>
-<div class="pvg2"><div><label>Zielgewicht (kg)</label><input class="txt" id="pvWz" inputmode="decimal" maxlength="5" placeholder="optional"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="pvB0" inputmode="decimal" maxlength="5" placeholder="optional"></div></div><label>Plank-Bestzeit am Start (Sekunden)</label><input class="txt" id="pvP0" inputmode="numeric" maxlength="4" placeholder="optional, z. B. 60"></div>
+<div class="pvg2"><div><label>Zielgewicht (kg)</label><input class="txt" id="pvWz" inputmode="decimal" maxlength="5" placeholder="optional"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="pvB0" inputmode="decimal" maxlength="5" placeholder="optional"></div></div><p class="note" style="margin:6px 0 0">⏱️ Plank kommt automatisch aus deinem Fitness-Test und den Rekorden.</p></div>
 <div class="card"><h3>📈 Neuer Messwert</h3><p class="note" style="margin-top:0">Am besten 1× pro Woche, morgens nüchtern, gleiche Waage.</p>
 <div class="pvg2"><div><label>Gewicht (kg)</label><input class="txt" id="pvNW" inputmode="decimal" maxlength="5"></div><div><label>Bauchumfang (cm)</label><input class="txt" id="pvNB" inputmode="decimal" maxlength="5"></div></div>
-<label>Plank-Bestzeit (Sekunden)</label><input class="txt" id="pvNP" inputmode="numeric" maxlength="4">
 <button class="wbtn" id="pvAdd" style="text-align:center;background:var(--acc);color:#000;margin:0"><b>Messwert speichern</b></button><div id="pvMsg" class="note" style="min-height:18px"></div></div>
 <div class="card"><h3>🗓️ Verlauf</h3><div id="pvLog"></div></div>
-<p class="note">Tipp: Halteübungen bauen vor allem Kraft auf – das Gewicht ändert sich oft nur wenig. Bauchumfang und Plank-Bestzeit zeigen den Fortschritt meist besser.<br>Achtung: Bei Handywechsel oder gelöschten Browserdaten sind die Werte weg.</p>
+<p class="note">Tipp: Halteübungen bauen vor allem Kraft auf – das Gewicht ändert sich oft nur wenig. Bauchumfang und Plank-Zeit (aus Test &amp; Rekorden) zeigen den Fortschritt meist besser.<br>Achtung: Bei Handywechsel oder gelöschten Browserdaten sind die Werte weg.</p>
 </div></div>
 <div id="pick" style="display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:8"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>🎯 Einzelne Übung</h1><button class="chip" id="pickX">Schließen ✕</button></div><p class="sub">Antippen = starten. ℹ️ = Erklärung. Zählt nicht für Punkte.</p><div class="exl" id="pickList"></div></div></div>
 <div id="exd"><div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><span class="note">Übung</span><button class="chip" id="exdX">Zurück ✕</button></div><div id="exdBody"></div><button class="wbtn" id="exdX2" style="text-align:center;margin-top:16px"><b>Verstanden 👍</b></button></div></div>
@@ -1154,28 +1153,31 @@ function pvFromForm(px,n){const o=pvGet(n);o.sex=$(px+"Sex").value;["H","W0","Wz
 function pvHash(){try{const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^pv_/.test(k))o[k]=ls(k,null)}if(!Object.keys(o).length)return"";return"&p="+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(o)))))}catch(e){return""}}
 const f1=x=>x==null?"–":String(x).replace(".",",");
 function pvDiff(a,b,u,goodDown){if(a==null||b==null)return"";const d=Math.round((b-a)*10)/10;if(!d)return' <span class="note">(±0)</span>';const good=goodDown?d<0:d>0;return' <b style="color:var(--'+(good?"acc":"warn")+')">('+(d>0?"+":"−")+f1(Math.abs(d))+" "+u+")</b>"}
+// Plank Start/Bestwert aus Fitness-Test (rek.js) bzw. Rekorden – keine manuelle Eingabe mehr nötig
+function pvPlank(){try{const T=typeof myTst==="function"?myTst():{},R=typeof myRec==="function"?myRec():{},r=R.plank||{},t0=T.t0&&T.t0.plank,t1=T.t1&&T.t1.plank;
+  const st=t0!=null?+t0:(r.f!=null?+r.f:null),vs=[t0,t1,r.b].filter(v=>v!=null).map(Number),be=vs.length?Math.max(...vs):null;return[st,be]}catch(e){return[null,null]}}
 function pvRender(){const o=pvGet(),L=o.log||[],last=k=>{for(let i=L.length-1;i>=0;i--)if(L[i][k]!=null)return L[i][k];return null};
-  ["Sex","H","W0","Wz","B0","P0"].forEach(k=>{const v=o[k==="Sex"?"sex":k.toLowerCase()];$("pv"+k).value=v==null?"":String(v).replace(".",",")});
-  const w=last("w"),b=last("b"),pl=last("p");let s="<h3>📊 Vorher – Nachher</h3>";
-  if(!o.w0&&!o.b0&&!o.p0&&!L.length)s+='<p class="note" style="margin:0">Noch keine Werte. Trag unten deine Startwerte ein – dann siehst du hier deinen Fortschritt.</p>';
+  ["Sex","H","W0","Wz","B0"].forEach(k=>{const v=o[k==="Sex"?"sex":k.toLowerCase()];$("pv"+k).value=v==null?"":String(v).replace(".",",")});
+  const w=last("w"),b=last("b"),pk=pvPlank(),p0=pk[0]!=null?pk[0]:o.p0,pl=pk[1]!=null?pk[1]:last("p");let s="<h3>📊 Vorher – Nachher</h3>";
+  if(!o.w0&&!o.b0&&p0==null&&pl==null&&!L.length)s+='<p class="note" style="margin:0">Noch keine Werte. Trag unten deine Startwerte ein – dann siehst du hier deinen Fortschritt.</p>';
   else{s+='<table class="pvt"><tr><td></td><td>Start</td><td>Aktuell</td></tr>'+
     '<tr><td>⚖️ Gewicht</td><td>'+f1(o.w0)+' kg</td><td>'+f1(w)+' kg'+pvDiff(o.w0,w,"kg",o.wz==null||o.w0==null||o.wz<o.w0)+'</td></tr>'+
     '<tr><td>📏 Bauch</td><td>'+f1(o.b0)+' cm</td><td>'+f1(b)+' cm'+pvDiff(o.b0,b,"cm",true)+'</td></tr>'+
-    '<tr><td>⏱️ Plank</td><td>'+f1(o.p0)+' s</td><td>'+f1(pl)+' s'+pvDiff(o.p0,pl,"s",false)+'</td></tr></table>';
+    '<tr><td>⏱️ Plank</td><td>'+f1(p0)+' s</td><td>'+f1(pl)+' s'+pvDiff(p0,pl,"s",false)+'</td></tr></table>';
     const cw=w!=null?w:o.w0;
     if(o.wz&&cw)s+='<p class="note" style="margin:8px 0 0">🎯 Ziel '+f1(o.wz)+' kg – '+(Math.abs(cw-o.wz)<0.25?"erreicht! 🎉":"noch "+f1(Math.round(Math.abs(cw-o.wz)*10)/10)+" kg")+'</p>';
     if(o.h&&cw)s+='<p class="note" style="margin:4px 0 0">BMI: '+f1(Math.round(cw/((o.h/100)**2)*10)/10)+' (bei viel Muskeln nur grob aussagekräftig)</p>'}
   $("pvSum").innerHTML=s;
   $("pvLog").innerHTML=L.length?'<table class="pvt">'+L.slice().reverse().map((e,i)=>'<tr><td>'+e.d.split("-").reverse().slice(0,2).join(".")+'</td><td>'+(e.w!=null?f1(e.w)+" kg":"")+'</td><td>'+(e.b!=null?f1(e.b)+" cm":"")+'</td><td>'+(e.p!=null?f1(e.p)+" s":"")+'</td><td><button class="chip" data-i="'+(L.length-1-i)+'" style="padding:2px 8px">✕</button></td></tr>').join("")+'</table>':'<p class="note" style="margin:0">Noch keine Messwerte.</p>';
   $("pvLog").querySelectorAll("button[data-i]").forEach(bt=>bt.onclick=()=>{const o2=pvGet();o2.log.splice(+bt.dataset.i,1);pvSet(o2);pvRender()})}
-$("bPv").onclick=()=>{$("pvMsg").textContent="";["pvNW","pvNB","pvNP"].forEach(i=>$(i).value="");pvRender();$("pv").style.display="block";$("pv").scrollTop=0};
+$("bPv").onclick=()=>{$("pvMsg").textContent="";["pvNW","pvNB"].forEach(i=>$(i).value="");pvRender();$("pv").style.display="block";$("pv").scrollTop=0};
 $("pvX").onclick=()=>$("pv").style.display="none";
-["pvSex","pvH","pvW0","pvWz","pvB0","pvP0"].forEach(i=>$(i).onchange=()=>{pvFromForm("pv");pvRender()});
-$("pvAdd").onclick=()=>{const e={d:todayK(),w:num($("pvNW").value),b:num($("pvNB").value),p:num($("pvNP").value)};
-  if(e.w==null&&e.b==null&&e.p==null){$("pvMsg").textContent="Bitte mindestens einen Wert eintragen.";return}
+["pvSex","pvH","pvW0","pvWz","pvB0"].forEach(i=>$(i).onchange=()=>{pvFromForm("pv");pvRender()});
+$("pvAdd").onclick=()=>{const e={d:todayK(),w:num($("pvNW").value),b:num($("pvNB").value)};
+  if(e.w==null&&e.b==null){$("pvMsg").textContent="Bitte mindestens einen Wert eintragen.";return}
   const o=pvGet();o.log=(o.log||[]).filter(x=>x.d!==e.d);o.log.push(e);o.log.sort((a,b)=>a.d<b.d?-1:1);
-  if(o.w0==null&&e.w!=null)o.w0=e.w;if(o.b0==null&&e.b!=null)o.b0=e.b;if(o.p0==null&&e.p!=null)o.p0=e.p;if(!o.d0)o.d0=e.d;pvSet(o);
-  ["pvNW","pvNB","pvNP"].forEach(i=>$(i).value="");$("pvMsg").textContent="✅ Gespeichert (nur auf diesem Handy)";pvRender()};
+  if(o.w0==null&&e.w!=null)o.w0=e.w;if(o.b0==null&&e.b!=null)o.b0=e.b;if(!o.d0)o.d0=e.d;pvSet(o);
+  ["pvNW","pvNB"].forEach(i=>$(i).value="");$("pvMsg").textContent="✅ Gespeichert (nur auf diesem Handy)";pvRender()};
 // ---------- Feedback & Umfrage ----------
 const FBK=[["frage","❓ Frage"],["idee","💡 Idee"],["problem","🐞 Problem"],["lob","👍 Lob"]];
 let fbSel="idee";
