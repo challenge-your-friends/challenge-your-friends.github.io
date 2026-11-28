@@ -245,7 +245,7 @@ function renderRx(){const m=curMsg();if(!m)return;const me=state.name,L=(window.
   if(mini){mini.insertAdjacentHTML("beforeend",bar+(com.length?'<div class="note" style="margin-top:8px;cursor:pointer" class="rxgo">💬 '+com.length+' Kommentar'+(com.length===1?"":"e")+' – im Ranking ansehen</div>':'<div class="note rxgo" style="margin-top:8px;cursor:pointer">💬 Kommentieren – im Ranking</div>'));
     mini.querySelectorAll(".note").forEach(n=>n.onclick=()=>document.querySelector('#menu .tabs button[data-t="rank"]').click())}
   [full,mini].forEach(b=>b&&b.querySelectorAll(".rxb button").forEach(x=>x.onclick=async()=>{x.disabled=true;await rxSend(m,{kind:"e",e:x.dataset.e});x.disabled=false}))}
-loadRank=async function(){try{const r=await api("list");if(r.ok){others=r.users||[];window.RX=r.rx||[];renderRank()}}catch(e){}};
+loadRank=async function(){try{const r=await api("list");if(r.ok){others=r.users||[];window.RX=r.rx||[];window.DU=r.du||[];renderRank()}}catch(e){}};
 
 // ---------- Online-Status & Anfeuern ----------
 let ONL={},CHEERS=[],pingBusy=false;
@@ -287,12 +287,72 @@ setTimeout(ping,2500);
 {const _st=start;start=async function(){CHEERS=[];const r=await _st.apply(this,arguments);setTimeout(ping,800);return r}}
 {const _sp=stop;stop=function(){const r=_sp.apply(this,arguments);setTimeout(ping,300);return r}}
 
+// ---------- Duelle: im Ranking auf einen Namen tippen → Übung wählen → vorlegen; der Gegner hat 24 Std. zum Kontern ----------
+window.DU=window.DU||[];let DUEL=null;const duSeen={};
+css.textContent+="#duelO{display:none;position:fixed;inset:0;background:var(--bg);overflow:auto;padding:20px;z-index:12}.dug{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 16px}.dug button{min-height:46px;border-radius:12px;border:1px solid #2a2e37;background:var(--card);color:var(--fg);font-size:14px;font-weight:600;padding:6px 8px;text-align:left}.dug button small{display:block;color:var(--mut);font-weight:400;font-size:12px}"
+ +".dui{padding:10px 0;border-top:1px solid #ffffff14;font-size:14px;line-height:1.45}.dui:first-child{border-top:0}.dui .row{margin-top:6px;gap:6px;flex-wrap:wrap}.dui .chip{padding:6px 12px;font-size:13px}.rk{cursor:pointer}.dutag{display:inline-block;font-size:12px;padding:1px 7px;border-radius:9px;background:#ffb02030;color:var(--warn);margin:2px 4px 0 0}";
+const duX=id=>(typeof LIBK!=="undefined"&&LIBK[id])||null;
+const duV=(id,v)=>{const x=duX(id);return x&&typeof fmtVL==="function"?fmtVL(x,v):String(v)};
+function duWins(){const w={};(window.DU||[]).filter(d=>d.st==="done"&&d.w).sort((a,b)=>a.z-b.z).forEach(d=>{w[d.w]=w[d.w]||{};w[d.w][d.ex]=(w[d.w][d.ex]||0)+1});return w}
+function duOverlay(){let el=$("duelO");if(!el){el=document.createElement("div");el.id="duelO";document.body.appendChild(el)}return el}
+function duClose(){const el=$("duelO");if(el)el.style.display="none"}
+function openDuel(name){if(!token){showLogin();return}if(name===state.name)return;
+  const open=(window.DU||[]).find(d=>d.st==="open"&&((d.von===name&&d.an===state.name)||(d.an===name&&d.von===state.name)));
+  if(open){if(open.an===state.name)duAccept(open);else toast("⚔️ Euer Duell läuft schon – "+name+" ist dran");return}
+  const me=RK.find(r=>r.me),him=RK.find(r=>r.name===name),tie=me&&him&&me.pts===him.pts;
+  const H=LIB.filter(x=>x.m==="h"),Rp=LIB.filter(x=>x.m==="r"||x.m==="r60"),el=duOverlay(),rec=myRec();
+  const btn=x=>'<button data-x="'+x.id+'">'+E(x.n)+'<small>'+(rec[x.id]?"Dein Rekord: "+E(fmtVL(x,rec[x.id].b)):"noch kein Rekord")+'</small></button>';
+  el.innerHTML='<div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>⚔️ Duell gegen <span id="duN"></span></h1><button class="chip" id="duX">✕</button></div>'
+   +'<p class="note" style="margin:8px 0 12px">So läuft\'s: Du wählst eine Übung und legst jetzt vor. <b id="duN2"></b> sieht dein Ergebnis und hat 24 Std., um es zu schlagen. Wer gewinnt, bekommt ein Abzeichen (z. B. „Plank #1“).'+(tie?'<br><b style="color:var(--warn)">Ihr seid gerade punktgleich – der Sieger bekommt +1 Extrapunkt (1× pro Woche).</b>':'')+'</p>'
+   +'<h3>⏱ Halten – wer länger hält</h3><div class="dug">'+H.map(btn).join("")+'</div><h3>🔥 Wiederholungen am Stück</h3><div class="dug">'+Rp.map(btn).join("")+'</div></div>';
+  $("duN").textContent=name;$("duN2").textContent=name;$("duX").onclick=duClose;
+  el.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{const x=duX(b.dataset.x);
+    ask('⚔️ <b>'+E(x.n)+'</b> gegen <b>'+E(name)+'</b><br><span style="font-size:14px">Jetzt dein Versuch – danach geht die Herausforderung raus.</span>',()=>{duClose();DUEL={mode:"new",to:name,x};rrStart(x)},null,"Los geht's","Abbrechen")});
+  el.style.display="block";el.scrollTop=0;if(typeof backGuard==="function")backGuard()}
+function duAccept(d){const x=duX(d.ex);if(!x){toast("Diese Übung kennt deine App noch nicht – bitte App neu laden");return}
+  ask('⚔️ <b>'+E(d.von)+'</b> fordert dich heraus!<br><b>'+E(x.n)+'</b> – vorgelegt: <b>'+E(duV(d.ex,d.v1))+'</b>. Schlag das!'+(d.tie?'<br><span style="color:var(--warn)">Es geht um +1 Extrapunkt.</span>':'')+'<br><span style="font-size:13px;color:var(--mut)">Zeit bis '+new Date(d.z+864e5).toLocaleString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"})+' Uhr</span>',
+    ()=>{DUEL={mode:"answer",d,x};rrStart(x)},null,"Annehmen & loslegen","Später")}
+async function duAct(body,ok){try{const r=await api("duel",Object.assign({token},body));if(r.ok){if(ok)ok(r)}else toast(r.err==="unbekannte Aktion"?"Duelle werden gerade freigeschaltet – gleich nochmal":r.err||"Fehler");await loadRank();return r}catch(e){toast("Keine Verbindung");return null}}
+function duDecline(d){if(d.tie)ask("Duell ablehnen?<br><span style=\"font-size:14px\">Es geht um den Extrapunkt. Du kannst stattdessen einen <b>Münzwurf</b> vorschlagen – "+E(d.von)+" muss zustimmen.</span>",
+    ()=>duAct({do:"decline",id:d.id,coin:1},()=>toast("🪙 Münzwurf vorgeschlagen")),()=>duAct({do:"decline",id:d.id},()=>toast("Duell abgelehnt")),"🪙 Münzwurf vorschlagen","Nur ablehnen");
+  else ask("Duell gegen "+E(d.von)+" ablehnen?",()=>duAct({do:"decline",id:d.id},()=>toast("Duell abgelehnt")),null,"Ablehnen","Abbrechen")}
+function duCoin(d,ok){duAct({do:"coin",id:d.id,ok:ok?1:0},r=>{if(ok){confetti();ask("🪙 Münzwurf …<br><b style=\"font-size:20px\">"+E(r.sieger)+" gewinnt den Extrapunkt!</b>",()=>{},null,"Ok","Schließen")}})}
+{const _r=rrResult;rrResult=function(){const D0=DUEL,v=RR&&RR.v;_r.apply(this,arguments);if(!D0)return;DUEL=null;if(!v)return;
+  const box=$("rrI");if(box)box.insertAdjacentHTML("beforeend",'<br><span id="duRes" style="color:var(--warn)">⚔️ Duell wird übertragen …</span>');
+  const put=t=>{const e=$("duRes");if(e)e.textContent=t};
+  if(D0.mode==="new")duAct({do:"new",to:D0.to,ex:D0.x.id,exn:D0.x.n,art:D0.x.u==="st"?"st":D0.x.m==="h"?"h":"r",v},r=>put("⚔️ Herausforderung an "+D0.to+" ist raus"+(r.tie?" – es geht um +1 Extrapunkt!":"! Er/sie hat 24 Std. zum Kontern.")));
+  else duAct({do:"answer",id:D0.d.id,v},r=>{if(r.sieger===state.name){confetti();put("🏆 Du hast das Duell gewonnen"+(r.extra?" – +1 Extrapunkt!":"!"))}else if(r.sieger)put("😤 "+r.sieger+" bleibt vorne ("+duV(D0.d.ex,r.v1)+"). Revanche im Ranking!");else put("🤝 Unentschieden – genau gleich!")})}}
+{const _q=rrQuit;rrQuit=function(){DUEL=null;return _q.apply(this,arguments)}}
+function renderDuels(){const rl=$("rankList");if(!rl)return;const me=state.name,L=window.DU||[];
+  rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r||r.me)return;el.onclick=e=>{if(e.target.closest("button"))return;openDuel(r.name)}});
+  const W=duWins();rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r)return;el.querySelectorAll(".dutag").forEach(x=>x.remove());const w=W[r.name];if(!w)return;
+    const sm=el.querySelector(".nm small");if(sm)Object.keys(w).forEach(k=>{const t=document.createElement("span");t.className="dutag";t.textContent="⚔️ "+((duX(k)||{}).n||k)+" #"+w[k];sm.after(t)})});
+  let card=$("duelCard");if(!card){card=document.createElement("div");card.className="card";card.id="duelCard";const rc=rl.closest(".card");if(rc)rc.after(card);else return}
+  const mine=me?L.filter(d=>d.an===me&&d.st==="open"):[],coin=me?L.filter(d=>d.von===me&&d.st==="coin"):[],wait=me?L.filter(d=>(d.von===me&&d.st==="open")||(d.an===me&&d.st==="coin")):[],done=L.filter(d=>["done","coindone"].includes(d.st)).sort((a,b)=>b.z-a.z).slice(0,6);
+  const line=d=>{const x=duX(d.ex),n=x?x.n:d.exn;return '<b>'+E(d.von)+'</b> ⚔️ <b>'+E(d.an)+'</b> · '+E(n)+(d.tie?' · 🏅 um 1 Punkt':'')};
+  let h='<h3>⚔️ Duelle</h3><p class="note" style="margin:-4px 0 8px">Tippe im Ranking auf einen Namen, um ihn herauszufordern.</p>';
+  mine.forEach(d=>h+='<div class="dui">🔔 '+line(d)+'<br>Vorgelegt: <b>'+E(duV(d.ex,d.v1))+'</b> – du bist dran!<div class="row"><button class="chip" data-acc="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Annehmen & loslegen</button><button class="chip" data-dec="'+E(d.id)+'">Ablehnen</button></div></div>');
+  coin.forEach(d=>h+='<div class="dui">🪙 '+E(d.an)+' schlägt einen Münzwurf um den Extrapunkt vor ('+E((duX(d.ex)||{}).n||d.exn)+').<div class="row"><button class="chip" data-cy="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Einverstanden – werfen</button><button class="chip" data-cn="'+E(d.id)+'">Nein</button></div></div>');
+  wait.forEach(d=>h+='<div class="dui">⏳ '+line(d)+(d.st==="coin"?'<br>Münzwurf vorgeschlagen – wartet auf '+E(d.von)+'.':'<br>Du hast <b>'+E(duV(d.ex,d.v1))+'</b> vorgelegt – wartet auf '+E(d.an)+'.')+'</div>');
+  done.forEach(d=>h+='<div class="dui">'+(d.w?'🏆 <b>'+E(d.w)+'</b> gewinnt':'🤝 Unentschieden')+' · '+line(d)+(d.st==="coindone"?'<br>per Münzwurf':'<br>'+E(d.von)+': '+E(duV(d.ex,d.v1))+' · '+E(d.an)+': '+E(duV(d.ex,d.v2)))+(me&&d.w&&d.w!==me&&(d.von===me||d.an===me)?'<div class="row"><button class="chip" data-rev="'+E(d.w)+'">🔁 Revanche</button></div>':'')+'</div>');
+  if(!mine.length&&!coin.length&&!wait.length&&!done.length)h+='<p class="note" style="margin:0">Noch keine Duelle. Wer traut sich zuerst?</p>';
+  card.innerHTML=h;
+  card.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>duAccept(L.find(d=>d.id===b.dataset.acc)));
+  card.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>duDecline(L.find(d=>d.id===b.dataset.dec)));
+  card.querySelectorAll("[data-cy]").forEach(b=>b.onclick=()=>duCoin(L.find(d=>d.id===b.dataset.cy),true));
+  card.querySelectorAll("[data-cn]").forEach(b=>b.onclick=()=>duCoin(L.find(d=>d.id===b.dataset.cn),false));
+  card.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>openDuel(b.dataset.rev));
+  // Startseite: Hinweis + einmaliges Pop-up für neue Herausforderungen
+  const w=$("whoBox");if(w){w.querySelectorAll(".duh").forEach(x=>x.remove());const n=mine.length+coin.length;if(n){const c=w.querySelector(".card")||w;c.insertAdjacentHTML("beforeend",'<p class="duh" style="margin-top:8px;cursor:pointer;color:var(--warn)">⚔️ '+(mine.length?E(mine.map(d=>d.von).join(", "))+" hat dich herausgefordert":"Münzwurf wartet auf dich")+' – im Ranking antworten</p>');
+    c.querySelector(".duh").onclick=()=>document.querySelector('#menu .tabs button[data-t="rank"]').click()}}
+  const nw=mine.find(d=>!duSeen[d.id]&&!ls("duS_"+d.id,0));if(nw&&!running&&!RR&&getComputedStyle($("modal")).display==="none"){duSeen[nw.id]=1;lsSet("duS_"+nw.id,1);duAccept(nw)}}
+
 // ---------- Einhängen ----------
 {const _bs=backStep;backStep=function(){
   if($("modal")&&getComputedStyle($("modal")).display!=="none")return _bs();
   for(const [o,x] of [["shr","shrX"],["legal","legalX"]]){const el=$(o);if(el&&getComputedStyle(el).display!=="none"){if($(x))$(x).click();else el.style.display="none";return true}}
   return _bs()}}
 {const _rm=renderMenu;renderMenu=function(){_rm.apply(this,arguments);try{renderWho();renderExtra();paintOnline()}catch(e){console.error(e)}};
- const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra();renderRx();paintOnline()}catch(e){console.error(e)}}}
+ const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra();renderRx();paintOnline();renderDuels()}catch(e){console.error(e)}}}
 try{renderMenu()}catch(e){}
 })();

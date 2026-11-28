@@ -214,12 +214,17 @@ function doPost(e) {
       return out_({ ok: true, users: rows.map(r => {
         let d = {}; try { d = JSON.parse(r.o.data || '{}'); } catch (e) {}
         return { name: r.o.name, start: dstr_(r.o.start), days: d.days || {}, ch: d.ch || {}, bx: +d.bx || 0, g: d.g || '' };
-      }), rx: rxList_(rows) });
+      }), rx: rxList_(rows), du: duelList_() });
     }
     if (q.a === 'react') {
       const r = byToken(q.token);
       if (!r) return out_({ ok: false, err: 'auth' });
       return out_(react_(r.o, rows, q));
+    }
+    if (q.a === 'duel') {
+      const r = byToken(q.token);
+      if (!r) return out_({ ok: false, err: 'auth' });
+      return out_(duel_(r, rows, sh, q));
     }
     if (q.a === 'feedback') {
       const r = byToken(q.token);
@@ -435,6 +440,80 @@ function live_(me, q) {
   let ch = []; try { ch = JSON.parse(c.get('ch_' + to) || '[]'); } catch (e) {}
   ch.push({ von: me.n, t: now }); c.put('ch_' + to, JSON.stringify(ch.slice(-20)), 3600);
   return { ok: true };
+}
+
+// ---------- Duelle (Blatt "Duelle") ----------
+// Wer herausfordert, legt vor. Der Gegner hat 24 Std. zum Kontern. Höherer Wert gewinnt, gleicher Wert = unentschieden.
+// Sind beide punktgleich, geht es um +1 Extrapunkt (1× pro Woche pro Paar). Ablehnen geht; beim Punkt-Duell kann man stattdessen einen Münzwurf vorschlagen, dem der Herausforderer zustimmen muss.
+const DU_H = ['id', 'zeit', 'von', 'vonName', 'an', 'anName', 'ex', 'exName', 'art', 'v1', 'v2', 'status', 'sieger', 'extra', 'woche', 'fertig'];
+function duSheet_() {
+  const ss = sheet_().getParent(); let s = ss.getSheetByName('Duelle');
+  if (!s) { s = ss.insertSheet('Duelle'); s.appendRow(DU_H); s.setFrozenRows(1); }
+  return s;
+}
+function duRows_(s) {
+  const now = Date.now();
+  return s.getDataRange().getValues().slice(1).map((r, i) => {
+    const o = { row: i + 2 }; DU_H.forEach((h, j) => o[h] = r[j]);
+    o.ms = o.zeit instanceof Date ? o.zeit.getTime() : (Date.parse(o.zeit) || 0);
+    if (o.status === 'open' && now - o.ms > 864e5) o.status = 'expired';
+    if (o.status === 'coin' && now - o.ms > 2 * 864e5) o.status = 'declined';
+    return o;
+  });
+}
+function duSet_(s, o, vals) { Object.keys(vals).forEach(k => s.getRange(o.row, DU_H.indexOf(k) + 1).setValue(vals[k])); }
+function duPoint_(sh, rows, key, id, t, n) {
+  const r = rows.find(x => x.o.nameKey === key); if (!r) return;
+  const d = parseData_(r.o); d.ch['du:' + id] = { p: 1, at: t, n: String(n).slice(0, 40) };
+  sh.getRange(r.row, HEAD.indexOf('data') + 1).setValue(JSON.stringify(d));
+  sh.getRange(r.row, HEAD.indexOf('updated') + 1).setValue(new Date());
+}
+function duel_(r, rows, sh, q) {
+  const t = today_(), s = duSheet_(), D = duRows_(s), me = r.o, mk = me.nameKey;
+  const pair = (x, a, b) => (x.von === a && x.an === b) || (x.von === b && x.an === a);
+  if (q.do === 'new') {
+    const to = String(q.to || '').trim().toLowerCase(), o = rows.find(x => x.o.nameKey === to);
+    if (!o || to === mk) return { ok: false, err: 'Gegner nicht gefunden' };
+    const ex = String(q.ex || '').slice(0, 20), exn = String(q.exn || '').slice(0, 40), art = ['h', 'r', 'st'].indexOf(q.art) >= 0 ? q.art : 'h', v = Math.round(+q.v || 0);
+    if (!/^[a-z0-9]+$/.test(ex) || !(v > 0 && v < 100000)) return { ok: false, err: 'Ungültiger Wert' };
+    if (D.some(x => x.status === 'open' && pair(x, mk, to))) return { ok: false, err: 'Zwischen euch läuft schon ein Duell' };
+    if (D.filter(x => x.status === 'open' && x.von === mk).length >= 3) return { ok: false, err: 'Du hast schon 3 offene Duelle' };
+    const wk = 'w' + weekKey_(t), pa = compute_(me, t).pts, pb = compute_(o.o, t).pts;
+    const tie = pa === pb && !D.some(x => +x.extra && x.woche === wk && x.status !== 'expired' && pair(x, mk, to));
+    const id = Utilities.getUuid().slice(0, 8);
+    s.appendRow([id, new Date(), mk, me.name, to, o.o.name, ex, exn, art, v, '', 'open', '', tie ? 1 : 0, wk, '']);
+    return { ok: true, id: id, tie: tie };
+  }
+  const d = D.find(x => String(x.id) === String(q.id || ''));
+  if (!d) return { ok: false, err: 'Duell nicht gefunden' };
+  if (q.do === 'answer') {
+    if (d.an !== mk) return { ok: false, err: 'Das Duell ist nicht für dich' };
+    if (d.status !== 'open') return { ok: false, err: d.status === 'expired' ? 'Zu spät – das Duell ist abgelaufen' : 'Das Duell ist schon entschieden' };
+    const v = Math.round(+q.v || 0); if (!(v >= 0 && v < 100000)) return { ok: false, err: 'Ungültiger Wert' };
+    const w = v > +d.v1 ? mk : v < +d.v1 ? d.von : '', wn = w === mk ? me.name : w === d.von ? d.vonName : '';
+    duSet_(s, d, { v2: v, status: 'done', sieger: wn, fertig: new Date() });
+    if (w && +d.extra) duPoint_(sh, rows, w, d.id, t, 'Duell-Extrapunkt (' + d.exName + ')');
+    return { ok: true, sieger: wn, v1: +d.v1, v2: v, extra: !!(+d.extra) };
+  }
+  if (q.do === 'decline') {
+    if (d.an !== mk || d.status !== 'open') return { ok: false, err: 'Geht nicht mehr' };
+    const coin = !!q.coin && !!(+d.extra);
+    duSet_(s, d, { status: coin ? 'coin' : 'declined', fertig: new Date() });
+    return { ok: true, coin: coin };
+  }
+  if (q.do === 'coin') {
+    if (d.von !== mk || d.status !== 'coin') return { ok: false, err: 'Geht nicht mehr' };
+    if (!q.ok) { duSet_(s, d, { status: 'declined' }); return { ok: true }; }
+    const w = Math.random() < 0.5 ? d.von : d.an, wn = w === d.von ? d.vonName : d.anName;
+    duSet_(s, d, { status: 'coindone', sieger: wn, fertig: new Date() });
+    duPoint_(sh, rows, w, d.id, t, 'Münzwurf-Extrapunkt');
+    return { ok: true, sieger: wn };
+  }
+  return { ok: false, err: 'unbekannt' };
+}
+function duelList_() {
+  const s = sheet_().getParent().getSheetByName('Duelle'); if (!s) return [];
+  return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra) }));
 }
 
 // ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------
