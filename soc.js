@@ -252,7 +252,25 @@ async function ping(){if(!token||pingBusy||!navigator.onLine)return;pingBusy=tru
   try{const r=await api("ping",{token,st:running?"run":"app"});if(r&&r.ok){ONL=r.on||{};(r.ch||[]).forEach(gotCheer);paintOnline()}}catch(e){}pingBusy=false}
 function gotCheer(c){const n=String(c.von||"Jemand");CHEERS.push(n);confetti();
   let b=$("chBan");if(!b){b=document.createElement("div");b.id="chBan";document.body.appendChild(b)}b.textContent="📣 "+n+" feuert dich an – gib alles!";b.style.opacity="1";clearTimeout(b._t);b._t=setTimeout(()=>b.style.opacity="0",4500);
-  try{if(running)say([{t:n+" feuert dich an! Gib alles!",k:[]}])}catch(e){}}
+  chQ.push(n);if(!chT)chT=setInterval(chTick,400);chT0=chT0||Date.now()}
+// Ansage nur, wenn der Coach gerade nicht spricht und auch nicht gleich etwas ansagt (sonst überschneidet es sich)
+let chQ=[],chT=null,chT0=0;
+function busyVoice(){try{if(typeof speechSynthesis!=="undefined"&&(speechSynthesis.speaking||speechSynthesis.pending))return true}catch(e){}try{if(cur)return true}catch(e){}return false}
+function calmWindow(){if(!running)return true;if(paused)return false;const st=steps[idx];if(!st||st.type==="prep")return false;
+  const el=total-remain;if(el<4||remain<13)return false;
+  if(st.type==="work"&&total>=20&&Math.abs(remain-total/2)<6)return false;
+  if(st.type==="work"&&[90,30].some(x=>total>x+5&&Math.abs(remain-x)<6))return false;
+  if(st.type==="work"&&total>=25&&el<7)return false;
+  if(st.type==="rest"&&st.gl&&remain>st.gl-1&&remain-st.gl<8)return false;
+  return true}
+function chTick(){if(!chQ.length){clearInterval(chT);chT=null;chT0=0;return}
+  if(Date.now()-chT0>120000){chQ=[];return}
+  if(busyVoice()||!calmWindow())return;
+  const u=[...new Set(chQ)];chQ=[];chT0=0;
+  const txt=(u.length>1?u.slice(0,-1).join(", ")+" und "+u[u.length-1]+" feuern":u[0]+" feuert")+" dich an! Gib alles!";
+  if(typeof quiet!=="undefined"&&quiet){try{beep(1500,.15);setTimeout(()=>beep(1800,.2),180)}catch(e){}return}
+  try{const v=typeof pickVoice==="function"?pickVoice():null,x=new SpeechSynthesisUtterance(txt);x.lang=v?v.lang:"de-DE";if(v)x.voice=v;x.rate=typeof rate==="number"?rate:1.1;
+    x.onstart=()=>{try{setDuck(true)}catch(e){}};x.onend=x.onerror=()=>{try{setDuck(false)}catch(e){}};speechSynthesis.speak(x)}catch(e){try{beep(1500,.2)}catch(e2){}}}
 function paintOnline(){const rows=$("rankList")&&$("rankList").querySelectorAll(".rk");if(!rows)return;
   rows.forEach((el,i)=>{const r=RK[i];if(!r)return;el.querySelectorAll(".onb,.cheer").forEach(x=>x.remove());const st=ONL[r.name];if(!st)return;
     const b=el.querySelector(".nm b");if(b)b.insertAdjacentHTML("afterend",st==="run"?'<span class="onb" style="color:var(--warn)">🏋️ trainiert gerade</span>':'<span class="onb" style="color:var(--acc)">🟢 online</span>');
