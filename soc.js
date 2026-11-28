@@ -217,12 +217,38 @@ if(typeof pvRender==="function"){const _pv=pvRender;pvRender=function(){_pv.appl
     el.innerHTML=d?tstHtml(true):'<div class="card"><h3>📏 Fitness-Test</h3><p class="note" style="margin:0">Noch nicht gemacht. Du findest ihn auf der Startseite – danach steht dein Ergebnis hier.</p></div>';
     if(d&&typeof tstBind==="function")tstBind(el)}catch(e){console.error(e)}}}
 
+// ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter ----------
+const RXE=["👍","🔥","😂","💪","💀","👑"];window.RX=window.RX||[];
+css.textContent+=".rxb{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.rxb button{border:1px solid #ffffff30;background:#00000030;color:var(--fg);border-radius:16px;padding:3px 9px;font-size:15px;cursor:pointer}.rxb button.on{background:#ffb02040;border-color:var(--warn)}.rxb button small{font-size:12px;margin-left:3px;color:#ddd}"
+ +".rxc{margin-top:10px;font-size:14px;line-height:1.4}.rxc div{padding:4px 0;border-top:1px solid #ffffff18}.rxc b{color:var(--warn)}.rxc a{color:var(--mut);margin-left:6px;cursor:pointer;font-size:12px}.rxi{display:flex;gap:6px;margin-top:8px}.rxi input{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff;font-size:15px}.rxi button{border:0;border-radius:10px;padding:8px 12px;background:var(--warn);color:#000;font-weight:700}";
+function curMsg(){const lead=RK.filter(r=>r.pl===1&&r.msg&&r.msg.t&&r.msg.ts).sort((a,b)=>(b.msg.ts||"").localeCompare(a.msg.ts||""));return lead[0]||null}
+async function rxSend(m,body,msgEl){if(!token){showLogin();return}
+  try{const r=await api("react",Object.assign({token,to:m.name,ts:m.msg.ts},body));
+    if(!r.ok){toast(r.err==="unbekannte Aktion"?"Kommt gleich – bitte in ein paar Minuten nochmal":(r.err||"Fehler"));await loadRank();return false}
+    await loadRank();return true}catch(e){toast("Keine Verbindung");return false}}
+function renderRx(){const m=curMsg();if(!m)return;const me=state.name,L=(window.RX||[]).filter(x=>x.o===m.name),em={},mine={};
+  L.filter(x=>x.a==="e").forEach(x=>{em[x.t]=(em[x.t]||0)+1;if(x.von===me)mine[x.t]=1});
+  const com=L.filter(x=>x.a==="c").sort((a,b)=>(a.z||"").localeCompare(b.z||""));
+  const bar='<div class="rxb">'+RXE.map(e=>'<button data-e="'+e+'" class="'+(mine[e]?"on":"")+'">'+e+(em[e]?'<small>'+em[e]+'</small>':'')+'</button>').join("")+'</div>';
+  // Ranking: alles · Startseite: nur Emojis + Anzahl Kommentare
+  const full=$("bossBox")&&$("bossBox").querySelector(".boss"),mini=$("bossBox2")&&$("bossBox2").querySelector(".boss");
+  if(full){const sh=com.slice(-30);full.insertAdjacentHTML("beforeend",bar+'<div class="rxc">'+sh.map(c=>'<div><b></b> <span></span>'+(c.von===me||me==="machermax"?'<a data-d="'+E(c.id)+'">✕</a>':'')+'</div>').join("")+'</div>'+
+      '<div class="rxi"><input maxlength="140" placeholder="Kommentieren …"><button>Senden</button></div>');
+    full.querySelectorAll(".rxc div").forEach((d,i)=>{d.querySelector("b").textContent=sh[i].von;d.querySelector("span").textContent=sh[i].t});
+    const inp=full.querySelector(".rxi input"),go=async()=>{const t=inp.value.trim();if(!t)return;inp.disabled=true;if(await rxSend(m,{kind:"c",t}))inp.value="";inp.disabled=false};
+    full.querySelector(".rxi button").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go()};
+    full.querySelectorAll("a[data-d]").forEach(a=>a.onclick=()=>ask("Kommentar löschen?",()=>rxSend(m,{kind:"d",id:a.dataset.d}),null,"Löschen","Abbrechen"))}
+  if(mini){mini.insertAdjacentHTML("beforeend",bar+(com.length?'<div class="note" style="margin-top:8px;cursor:pointer" class="rxgo">💬 '+com.length+' Kommentar'+(com.length===1?"":"e")+' – im Ranking ansehen</div>':'<div class="note rxgo" style="margin-top:8px;cursor:pointer">💬 Kommentieren – im Ranking</div>'));
+    mini.querySelectorAll(".note").forEach(n=>n.onclick=()=>document.querySelector('#menu .tabs button[data-t="rank"]').click())}
+  [full,mini].forEach(b=>b&&b.querySelectorAll(".rxb button").forEach(x=>x.onclick=async()=>{x.disabled=true;await rxSend(m,{kind:"e",e:x.dataset.e});x.disabled=false}))}
+loadRank=async function(){try{const r=await api("list");if(r.ok){others=r.users||[];window.RX=r.rx||[];renderRank()}}catch(e){}};
+
 // ---------- Einhängen ----------
 {const _bs=backStep;backStep=function(){
   if($("modal")&&getComputedStyle($("modal")).display!=="none")return _bs();
   for(const [o,x] of [["shr","shrX"],["legal","legalX"]]){const el=$(o);if(el&&getComputedStyle(el).display!=="none"){if($(x))$(x).click();else el.style.display="none";return true}}
   return _bs()}}
 {const _rm=renderMenu;renderMenu=function(){_rm.apply(this,arguments);try{renderWho();renderExtra()}catch(e){console.error(e)}};
- const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra()}catch(e){console.error(e)}}}
+ const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra();renderRx()}catch(e){console.error(e)}}}
 try{renderMenu()}catch(e){}
 })();

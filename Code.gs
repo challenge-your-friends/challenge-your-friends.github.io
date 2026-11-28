@@ -14,7 +14,7 @@ const PLAN = {1:'Tag A', 2:'Kurztag', 3:'Tag B', 4:'Kurztag', 5:'Tag A', 6:'Kurz
 function planName_(t) { const n = PLAN[dow_(t)]; if (!n || n === 'Kurztag') return n; const wk = Math.round((new Date(weekKey_(t) + 'T12:00:00Z') - new Date('2026-11-23T12:00:00Z')) / 6048e5); return (((wk % 2) + 2) % 2 === 1) ? (n === 'Tag A' ? 'Tag B' : 'Tag A') : n; }
 const CH_START = '2026-12-01', CH_END = '2026-12-31';
 // Schummel-Schutz: Workouts zählen nur mit Start-/End-Meldung und Mindestdauer
-const MIN_SEC = { A: 810, B: 780, K: 360, C: 100 };
+const MIN_SEC = { A: 600, B: 680, K: 320, C: 100 }; // 25.11.2026: Plank 60 s, kürzere Pausen
 const CH_P = { d: 2, w: 5 };
 function dstr_(v) { return (v instanceof Date) ? Utilities.formatDate(v, 'Europe/Berlin', 'yyyy-MM-dd') : String(v || ''); }
 function weekKey_(k) { return addDays_(k, -((dow_(k) + 6) % 7)); }
@@ -98,8 +98,10 @@ function validEmail_(e) { return !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function doGet() { return out_({ ok: true, app: 'workout-coach' }); }
 
 function doPost(e) {
+  // Ranking nur lesen – braucht keine Sperre (sonst hängt das Ranking, wenn gerade ein anderer Vorgang läuft)
+  let q0 = {}; try { q0 = JSON.parse(e.postData.contents || '{}'); } catch (x) {}
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  if (q0.a !== 'list' && !lock.tryLock(25000)) return out_({ ok: false, err: 'Server gerade beschäftigt – bitte gleich nochmal versuchen' });
   try {
     const q = JSON.parse(e.postData.contents || '{}');
     const { sh, rows } = rows_();
@@ -139,10 +141,20 @@ function doPost(e) {
       const d = q.data || {}, cd = d.ch || {}, cur = parseData_(r.o), t = today_();
       if (Array.isArray(d.ms)) cur.ms = d.ms.slice(0, 60).map(x => String(x).slice(0, 10));
       if (typeof d.bx === 'number' && isFinite(d.bx)) cur.bx = Math.max(0, Math.min(30, Math.round(d.bx)));
+      if (d.g === 'w' || d.g === 'm') cur.g = d.g; // Wertung: Frauen bekommen auf "Leicht" die vollen Punkte
       if (cd.msg && cd.msg.t) cur.ch.msg = { p: 0, t: String(cd.msg.t).slice(0, 140), ts: String(cd.msg.ts || new Date().toISOString()).slice(0, 30) };
       else delete cur.ch.msg;
+      // Krank / Pause: Liste [Start, Ende] (Ende leer = läuft noch)
+      const okD = v => /^\d{4}-\d\d-\d\d$/.test(String(v || ''));
+      if (Array.isArray(cd.pz)) cur.ch.pz = cd.pz.filter(z => Array.isArray(z) && okD(z[0])).slice(-10).map(z => [String(z[0]), okD(z[1]) ? String(z[1]) : '']);
+      else delete cur.ch.pz;
       Object.keys(cd).forEach(k => { const v = cd[k]; if (k !== 'msg' && v && v.failed && v.at === t) cur.ch[k] = { p: 0, n: String((cur.ch[k] || {}).n || v.n || '').slice(0, 40), at: t, failed: true }; });
-      const clean = JSON.stringify(Object.assign({ days: cur.days, ms: cur.ms, ch: cur.ch, bx: cur.bx || 0 }, cur.mp === 0 || cur.mp === 1 ? { mp: cur.mp } : {}));
+      // Rekorde & Fitness-Test (freiwillig, keine Punkte) – nur Zahlen übernehmen
+      const n_ = x => Math.max(0, Math.min(99999, Math.round(+x || 0))), d_ = x => String(x || '').slice(0, 10);
+      if (cd.rec && typeof cd.rec === 'object') { const o = {}; Object.keys(cd.rec).slice(0, 80).forEach(k => { const v = cd.rec[k]; if (!/^[a-z0-9]{1,12}$/i.test(k) || !v) return;
+        o[k] = { b: n_(v.b), bd: d_(v.bd), f: n_(v.f), fd: d_(v.fd), n: n_(v.n), t: n_(v.t), h: (Array.isArray(v.h) ? v.h : []).slice(-8).map(x => [d_(x && x[0]), n_(x && x[1])]) }; }); cur.ch.rec = o; }
+      if (cd.tst && typeof cd.tst === 'object') { const o = {}; ['t0', 't1'].forEach(p => { const v = cd.tst[p]; if (!v) return; const w = { d: d_(v.d), k: v.k ? 1 : 0 }; ['pu', 'plank', 'wallsit', 'hollow'].forEach(e => { if (v[e] !== undefined) w[e] = n_(v[e]); }); o[p] = w; }); cur.ch.tst = o; }
+      const clean = JSON.stringify(Object.assign({ days: cur.days, ms: cur.ms, ch: cur.ch, bx: cur.bx || 0 }, cur.g ? { g: cur.g } : {}, cur.mp === 0 || cur.mp === 1 ? { mp: cur.mp } : {}));
       if (clean.length > 45000) return out_({ ok: false, err: 'zu groß' });
       sh.getRange(r.row, HEAD.indexOf('data') + 1).setValue(clean);
       sh.getRange(r.row, HEAD.indexOf('updated') + 1).setValue(new Date());
@@ -188,8 +200,13 @@ function doPost(e) {
     if (q.a === 'list') {
       return out_({ ok: true, users: rows.map(r => {
         let d = {}; try { d = JSON.parse(r.o.data || '{}'); } catch (e) {}
-        return { name: r.o.name, start: dstr_(r.o.start), days: d.days || {}, ch: d.ch || {}, bx: +d.bx || 0 };
-      }) });
+        return { name: r.o.name, start: dstr_(r.o.start), days: d.days || {}, ch: d.ch || {}, bx: +d.bx || 0, g: d.g || '' };
+      }), rx: rxList_(rows) });
+    }
+    if (q.a === 'react') {
+      const r = byToken(q.token);
+      if (!r) return out_({ ok: false, err: 'auth' });
+      return out_(react_(r.o, rows, q));
     }
     if (q.a === 'feedback') {
       const r = byToken(q.token);
@@ -217,22 +234,67 @@ function compute_(o, tt) {
   const days = data.days || {}, ch = data.ch || {};
   let start = o.start || '2026-11-23';
   if (tt >= CH_START && start < CH_START) start = CH_START;
-  let pts = 0, streak = 0, total = 0, weekRun = 0;
+  let pts = 0, streak = 0, total = 0, weekRun = 0, owed = false, cbWk = '';
   for (let k = start; k <= t; k = addDays_(k, 1)) {
     const d = days[k], rest = dow_(k) === 0, past = k < t;
     let st = 'open';
-    if (d && d.done) { total++; const ez = d.e ? 1 : 0; pts += rest ? 1 : (d.at === k) ? (3 - ez) * (xmas_(k) ? 2 : 1) : 1 - ez; st = 'done'; if (!rest) { streak++; weekRun++; } }
+    if (d && d.done) { total++; const ez = d.e && data.g !== 'w' ? 1 : 0; pts += rest ? 1 : (d.at === k) ? (3 - ez) * (xmas_(k) ? 2 : 1) : 1 - ez; st = 'done'; if (!rest) { streak++; weekRun++; if (owed && streak >= 3) { owed = false; const wk = weekKey_(k); if (wk !== cbWk) { cbWk = wk; pts += 3; } } } }
     else if (rest) st = 'rest';
-    else if (past) { pts -= 3; streak = 0; weekRun = 0; st = 'miss'; }
+    else if (past) { pts -= 3; streak = 0; weekRun = 0; st = 'miss'; owed = true; }
     if (dow_(k) === 6) { if (weekRun >= 6 && st !== 'open') pts += 3; weekRun = 0; }
   }
   Object.keys(ch).forEach(x => { const c = ch[x]; if (c && (c.at || '') >= start && (c.at || '') <= CH_END) pts += (c.p || 0) * (x.slice(0, 2) === 'd:' && xmas_(c.at) ? 2 : 1); });
-  return { pts, streak, total, bx: +data.bx || 0, mp: (data.mp === 0 || data.mp === 1) ? data.mp : 2, done: !!(days[tt] && days[tt].done), days };
+  return { pts, streak, total, bx: +data.bx || 0, mp: (data.mp === 0 || data.mp === 1) ? data.mp : 2, done: !!(days[tt] && days[tt].done), days, ch, cbOn: owed, cbN: Math.min(streak, 3) };
 }
 
+// ---------- Aktive Gruppe (ab 1.12.) – gleiche Regeln wie in der App ----------
+// dabei = ab 1.12. mind. 1 Workout · >7 Tage ohne Training: zählt nicht bei "Wer fehlt"/Gruppenpunkt · >14 Tage: raus (außer Krank/Pause)
+function actKeys_(days) { return Object.keys(days || {}).filter(k => k >= CH_START && days[k] && days[k].done).sort(); }
+function lastAct_(days, k) { let l = ''; actKeys_(days).forEach(x => { if (x <= k) l = x; }); return l; }
+function dd_(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5); }
+function paused_(days, ch, k) {
+  const z = ch && ch.pz; if (!Array.isArray(z)) return false; const a = actKeys_(days);
+  return z.some(r => Array.isArray(r) && r[0] && r[0] <= k && (!r[1] || k <= r[1]) && !a.some(d => d > r[0] && d <= k));
+}
+function grp_(days, ch, t) {
+  if (t < CH_START) return { inn: true, idle: 0, pz: false, cnt: true };
+  const l = lastAct_(days, t); if (!l) return { inn: false, idle: -1, pz: false, cnt: false, never: true };
+  const idle = dd_(l, t), pz = paused_(days, ch, t);
+  return { inn: pz || idle <= 14, idle: idle, pz: pz, cnt: !pz && idle <= 7 };
+}
+function groupPts_(rank, t) {
+  if (t < CH_START) return 0; let n = 0; const end = t > CH_END ? CH_END : t;
+  for (let k = CH_START; k <= end; k = addDays_(k, 1)) {
+    if (dow_(k) === 0) continue;
+    const m = rank.filter(r => { const l = lastAct_(r.days, k); return l && dd_(l, k) <= 7 && !paused_(r.days, r.ch, k); });
+    if (m.length >= 2 && m.every(r => r.days[k] && r.days[k].done && r.days[k].at === k)) n++;
+  }
+  return n;
+}
 function ranking_(rows, t) {
-  return rows.filter(r => r.o.name).map(r => Object.assign({ row: r }, compute_(r.o, t), { name: r.o.name }))
+  return rows.filter(r => r.o.name).map(r => { const c = compute_(r.o, t); return Object.assign({ row: r }, c, { name: r.o.name, G: grp_(c.days, c.ch, t) }); })
     .sort((a, b) => b.pts - a.pts || b.bx - a.bx || b.streak - a.streak);
+}
+// Zusatzzeilen für alle Mails: Platz, Wer fehlt, Comeback, Warnung
+function list_(a, max) { return a.slice(0, max).join(', ') + (a.length > max ? ' +' + (a.length - max) : ''); }
+function placeTxt_(me, act) {
+  const i = act.indexOf(me);
+  if (i < 0) return me.G.never ? 'Du bist noch nicht im Ranking – mach dein erstes Workout, dann bist du dabei.\n' : 'Du bist gerade nicht im Ranking (' + me.G.idle + ' Tage ohne Training). Mit dem nächsten Workout bist du sofort wieder drin.\n';
+  return 'Du: Platz ' + (i + 1) + ' von ' + act.length + ' mit ' + me.pts + ' Punkten' + (me.streak >= 3 ? ', Serie 🔥 ' + me.streak : '') + '.\n' +
+    (i > 0 ? 'Bis Platz ' + i + ' fehlen dir ' + (act[i - 1].pts - me.pts + 1) + ' Punkte.\n' : '');
+}
+function whoTxt_(me, rank, t) {
+  if (dow_(t) === 0) return '';
+  const cnt = rank.filter(r => r.G.cnt); if (cnt.length < 2) return '';
+  const done = cnt.filter(r => r.done), miss = cnt.filter(r => !r.done && r !== me).map(r => r.name);
+  return '\n👥 Heute durch: ' + done.length + ' von ' + cnt.length + (miss.length ? ' – es fehlen noch: ' + list_(miss, 8) : '') + '\n' +
+    (t >= CH_START ? '🏅 Gruppenpunkt gibt\'s nur, wenn alle durch sind.\n' : '');
+}
+function extraTxt_(me, t) {
+  let s = '';
+  if (me.cbOn && t >= (me.row.o.start || '')) s += '🔁 Comeback-Mission: ' + me.cbN + ' von 3 – noch ' + (3 - me.cbN) + ' Workout' + (3 - me.cbN === 1 ? '' : 's') + ' in Folge, dann gibt\'s +3 zurück.\n';
+  if (t >= CH_START && me.G.inn && !me.G.pz && me.G.idle > 7) s += '⚠️ ' + me.G.idle + ' Tage ohne Training! Noch ' + (15 - me.G.idle) + ' Tag' + (15 - me.G.idle === 1 ? '' : 'e') + ', dann fliegst du aus Ranking und Gruppe. Krank? In der App unter „Mehr“ → „Krank / Pause“ drücken.\n';
+  return s;
 }
 
 function dailyReminder() {
@@ -241,20 +303,23 @@ function dailyReminder() {
   if (dow === 0 || t > CH_END) return; // Sonntag Ruhetag / Challenge vorbei
   const y = addDays_(t, -1);
   const { rows } = rows_();
-  const rank = ranking_(rows, t);
+  const rank = ranking_(rows, t), act = rank.filter(r => r.G.inn);
   const medal = ['🥇', '🥈', '🥉'];
-  rank.forEach((me, i) => {
+  rank.forEach(me => {
     const o = me.row.o;
-    if (!o.email || me.mp < 1 || !o.start || t < o.start || me.done) return;
-    const missedY = dow_(y) !== 0 && y >= o.start && !(me.days[y] && me.days[y].done);
+    if (!o.email || me.mp < 1 || !o.start || t < o.start || me.done || me.G.pz) return;
+    const missedY = dow_(y) !== 0 && y >= o.start && !(me.days[y] && me.days[y].done) && !(t >= CH_START && y < CH_START);
     let body = 'Hey ' + o.name + ',\n\n' +
       'dein Workout für heute (' + planName_(t) + ') ist noch offen! 😢\n' +
       (t < CH_START ? '🧪 Testphase – ab 1.12. zählt\'s richtig.\n' : 'Ausreden gibt\'s keine – sonst morgen −3 Punkte.\n');
     if (missedY) body += '\nGestern hast du auch verpasst. Heute nachholen holt 4 Punkte zurück (2 Einheiten machen).\n';
-    body += '\n🏆 Ranking\n';
-    rank.slice(0, 3).forEach((r, j) => { body += medal[j] + ' ' + r.name + ' – ' + r.pts + ' Punkte (🔥 ' + r.streak + ')' + (r.done ? ' ✓ heute' : '') + '\n'; });
-    body += '\nDu: Platz ' + (i + 1) + ' von ' + rank.length + ' mit ' + me.pts + ' Punkten.\n';
-    if (i > 0) body += 'Bis Platz ' + i + ' fehlen dir ' + (rank[i - 1].pts - me.pts + 1) + ' Punkte.\n';
+    const ex = extraTxt_(me, t); if (ex) body += '\n' + ex;
+    body += whoTxt_(me, rank, t);
+    if (act.length) {
+      body += '\n🏆 Ranking\n';
+      act.slice(0, 3).forEach((r, j) => { body += medal[j] + ' ' + r.name + ' – ' + r.pts + ' Punkte' + (r.streak >= 3 ? ' (🔥 ' + r.streak + ')' : '') + (r.done ? ' ✓ heute' : '') + '\n'; });
+    }
+    body += '\n' + placeTxt_(me, act);
     body += '\nZum Coach: ' + APP_LINK + '\n\nZieh durch! 💪';
     MailApp.sendEmail({ to: o.email, subject: '😢 ' + o.name + ', vergiss nicht dein Workout!', body: body, name: 'Workout-Coach' });
   });
@@ -265,20 +330,22 @@ function weeklySummary() {
   const t = today_();
   if (t > addDays_(CH_END, 1)) return;
   const { rows } = rows_();
-  const rank = ranking_(rows, t);
+  const rank = ranking_(rows, t), act = rank.filter(r => r.G.inn);
   const medal = ['🥇', '🥈', '🥉'];
-  const mon = addDays_(t, -6);
+  const mon = addDays_(t, -6), gp = groupPts_(rank, t);
   let table = '';
-  rank.forEach((r, j) => { table += (medal[j] || (j + 1) + '.') + ' ' + r.name + ' – ' + r.pts + ' Punkte (🔥 ' + r.streak + ', ' + r.total + ' Workouts)\n'; });
-  rank.forEach((me, i) => {
+  act.forEach((r, j) => { table += (medal[j] || (j + 1) + '.') + ' ' + r.name + ' – ' + r.pts + ' Punkte (' + (r.streak >= 3 ? '🔥 ' + r.streak + ', ' : '') + r.total + (r.total === 1 ? ' Workout' : ' Workouts') + (r.G.pz ? ', ⏸ Pause' : '') + ')\n'; });
+  rank.forEach(me => {
     const o = me.row.o;
     if (!o.email || me.mp === 0) return;
     let week = 0; for (let k = mon; k <= t; k = addDays_(k, 1)) if (me.days[k] && me.days[k].done) week++;
+    const i = act.indexOf(me);
     let body = 'Hey ' + o.name + ',\n\nhier deine Wochenübersicht 💪\n\n' +
       (t < CH_START ? '🧪 Testphase – ab 1.12. startet die Challenge, dann beginnen alle bei 0 Punkten.\n\n' : '') +
-      'Diese Woche: ' + week + ' Workouts\nDu: Platz ' + (i + 1) + ' von ' + rank.length + ' mit ' + me.pts + ' Punkten, Serie 🔥 ' + me.streak + '\n' +
-      (i > 0 ? 'Bis Platz ' + i + ' fehlen dir ' + (rank[i - 1].pts - me.pts + 1) + ' Punkte.\n' : 'Du führst! Verteidige Platz 1. 🏆\n') +
-      '\n🏆 Gesamt-Ranking\n' + table + '\nNeue Woche, neue Chance: ' + APP_LINK + '\n\nZieh durch! 💪';
+      'Diese Woche: ' + week + ' Workouts\n' + placeTxt_(me, act) +
+      (i === 0 ? 'Du führst! Verteidige Platz 1. 🏆\n' : '') + extraTxt_(me, t) +
+      (t >= CH_START ? '\n🏅 Gruppenpunkte bisher: ' + gp + ' (Tage, an denen alle Aktiven durch waren)\n' : '') +
+      (table ? '\n🏆 Gesamt-Ranking\n' + table : '') + '\nNeue Woche, neue Chance: ' + APP_LINK + '\n\nZieh durch! 💪';
     MailApp.sendEmail({ to: o.email, subject: '🏆 Workout-Challenge: deine Wochenübersicht', body: body, name: 'Workout-Coach' });
   });
   archiveCopies_();
@@ -289,12 +356,12 @@ function morningReminder() {
   const dow = dow_(t);
   if (dow === 0 || t > CH_END) return;
   const { rows } = rows_();
-  const rank = ranking_(rows, t);
-  rank.forEach((me, i) => {
+  const rank = ranking_(rows, t), act = rank.filter(r => r.G.inn);
+  rank.forEach(me => {
     const o = me.row.o;
-    if (!o.email || me.mp < 2 || !o.start || t < o.start) return;
+    if (!o.email || me.mp < 2 || !o.start || t < o.start || me.G.pz) return;
     const body = 'Guten Morgen ' + o.name + '! ☀️\n\nDenk an dein Workout heute: ' + planName_(t) + ' (max. 15 Minuten).\n' +
-      'Aktuell: Platz ' + (i + 1) + ' von ' + rank.length + ' mit ' + me.pts + ' Punkten, Serie 🔥 ' + me.streak + '.\n' +
+      placeTxt_(me, act) + extraTxt_(me, t) +
       (t < CH_START ? '🧪 Testphase – ab 1.12. zählt\'s richtig.\n' : '') +
       '\nJetzt starten: ' + APP_LINK + '\n\nZieh durch! 💪';
     MailApp.sendEmail({ to: o.email, subject: '☀️ Denk an dein Workout heute, ' + o.name + '!', body: body, name: 'Workout-Coach' });
@@ -313,13 +380,65 @@ function normMail_(s) {
 }
 function archiveCopies_(tage) {
   try {
-    if (!tage) Utilities.sleep(8000);
+    if (!tage) { Utilities.sleep(30000); planAufraeumen_(); } // 26.11.2026: länger warten + 2. Durchgang
     const me = normMail_(OWNER);
     GmailApp.search('in:sent subject:(Workout OR CYF) newer_than:' + (tage || 2) + 'd -in:trash', 0, 200).forEach(t => {
       const forOthers = t.getMessages().every(m => String(m.getTo()).split(',').every(x => normMail_(x) !== me));
       if (forOthers) t.moveToTrash();
     });
   } catch (e) { Logger.log('Archivieren fehlgeschlagen: ' + e); }
+}
+
+// 2. Aufräum-Durchgang 15 Min. nach jeder Mailrunde (fängt Kopien ab, die Gmail beim 1. Mal noch nicht gefunden hat)
+function planAufraeumen_() {
+  try {
+    ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'aufraeumenNach').forEach(t => ScriptApp.deleteTrigger(t));
+    ScriptApp.newTrigger('aufraeumenNach').timeBased().after(15 * 60 * 1000).create();
+  } catch (e) { Logger.log('Aufräum-Trigger fehlgeschlagen: ' + e); }
+}
+function aufraeumenNach() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'aufraeumenNach').forEach(t => ScriptApp.deleteTrigger(t));
+  archiveCopies_(1);
+}
+
+// ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------
+const RX_EMO = ['👍', '🔥', '😂', '💪', '💀', '👑'], ADMIN_KEY = 'machermax';
+function rxSheet_() {
+  const ss = sheet_().getParent(); let s = ss.getSheetByName('Reaktionen');
+  if (!s) { s = ss.insertSheet('Reaktionen'); s.appendRow(['id', 'zeit', 'an', 'ansage', 'von', 'vonKey', 'art', 'text']); s.setFrozenRows(1); }
+  return s;
+}
+function react_(me, rows, q) {
+  const to = String(q.to || '').trim().toLowerCase(), ts = String(q.ts || ''), tk = 'ts:' + ts;
+  const own = rows.find(r => r.o.nameKey === to); if (!own) return { ok: false, err: 'Ansage nicht gefunden' };
+  const d = parseData_(own.o); if (!d.ch.msg || d.ch.msg.ts !== ts) return { ok: false, err: 'Die Ansage ist nicht mehr aktuell' };
+  const c = CacheService.getScriptCache(), ck = 'rx_' + me.nameKey, n = +(c.get(ck) || 0);
+  if (n >= 80) return { ok: false, err: 'Heute schon sehr viel reagiert – morgen wieder 🙂' };
+  c.put(ck, String(n + 1), 21600);
+  const sh = rxSheet_(), v = sh.getDataRange().getValues();
+  if (q.kind === 'e') {
+    const e = String(q.e || ''); if (RX_EMO.indexOf(e) < 0) return { ok: false, err: 'Emoji unbekannt' };
+    for (let i = v.length - 1; i >= 1; i--) if (v[i][2] === to && String(v[i][3]) === tk && v[i][5] === me.nameKey && v[i][6] === 'e' && v[i][7] === e) { sh.deleteRow(i + 1); return { ok: true, off: true }; }
+    sh.appendRow([Utilities.getUuid(), new Date(), to, tk, me.name, me.nameKey, 'e', e]); return { ok: true };
+  }
+  if (q.kind === 'c') {
+    let t = String(q.t || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (!t) return { ok: false, err: 'Bitte etwas schreiben' };
+    if (/^[=+\-@]/.test(t)) t = '\u200b' + t;
+    sh.appendRow([Utilities.getUuid(), new Date(), to, tk, me.name, me.nameKey, 'c', t]); return { ok: true };
+  }
+  if (q.kind === 'd') {
+    const id = String(q.id || '');
+    for (let i = 1; i < v.length; i++) if (v[i][0] === id && (v[i][5] === me.nameKey || me.nameKey === ADMIN_KEY)) { sh.deleteRow(i + 1); return { ok: true }; }
+    return { ok: false, err: 'Nicht gefunden' };
+  }
+  return { ok: false, err: 'unbekannt' };
+}
+function rxList_(rows) {
+  const s = sheet_().getParent().getSheetByName('Reaktionen'); if (!s) return [];
+  const cur = {};
+  rows.forEach(r => { let d = {}; try { d = JSON.parse(r.o.data || '{}'); } catch (e) {} if (d.ch && d.ch.msg && d.ch.msg.ts) cur[r.o.nameKey] = { tk: 'ts:' + d.ch.msg.ts, name: r.o.name }; });
+  return s.getDataRange().getValues().slice(1).filter(x => cur[x[2]] && cur[x[2]].tk === String(x[3])).slice(-300)
+    .map(x => ({ id: String(x[0]), o: cur[x[2]].name, von: String(x[4]), a: String(x[6]), t: String(x[7]).replace(/^\u200b/, ''), z: x[1] instanceof Date ? x[1].toISOString() : String(x[1]) }));
 }
 
 // Feedback-Button & Umfrage: landet in der Tabelle (Blatt "Feedback") und als Mail bei Max (Antworten gehen direkt an die Person)
