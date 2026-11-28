@@ -198,6 +198,7 @@ const LEGAL='<h2>Wer steckt dahinter?</h2><p>CYF – Challenge Your Friends ist 
  +'<h2>Was wird gespeichert?</h2><ul><li><b>Benutzername</b> und <b>PIN</b> (die PIN nur verschlüsselt als Prüfwert, nicht lesbar)</li><li><b>E-Mail-Adresse</b> – nur wenn du sie einträgst, nur für Erinnerungen und Antworten auf dein Feedback</li><li><b>Trainingsdaten:</b> erledigte Tage, Challenges, Rekorde, Fitness-Test, Meilensteine, Extra-Sekunden</li><li><b>Angabe Frau/Mann</b> – nur für die faire Wertung</li><li><b>Krank / Pause</b> – nur ob und seit wann, kein Grund</li><li><b>Feedback und Umfragen</b>, die du abschickst</li></ul>'
  +'<h2>Was sehen die anderen?</h2><p>Alle Teilnehmenden sehen deinen Benutzernamen, Punkte, Serie, erledigte Tage, Challenges, Rekorde und ob du gerade pausierst. Die Rangliste ist nicht durch ein Passwort geschützt – wähl deshalb einen Benutzernamen, mit dem du dich wohlfühlst. Deine E-Mail-Adresse sieht nur Max als Betreiber, deine PIN niemand.</p>'
  +'<h2>Was bleibt nur auf deinem Handy?</h2><p>Alles unter „🔒 Meine Werte“ (Gewicht, Größe, Bauchumfang) sowie deine Einstellungen. Das wird nicht übertragen.</p>'
+ +'<h2>Chat</h2><p>Nachrichten im Gruppenchat sehen alle Teilnehmenden, Einzelnachrichten nur ihr beide. Alle Nachrichten liegen <b>unverschlüsselt</b> in der Google-Tabelle von Max – er könnte sie als Betreiber technisch lesen. Schreib dort also nichts, was niemand außer deinem Gegenüber wissen darf. Gemeldete Nachrichten schaut sich Max an und kann sie löschen.</p>'
  +'<h2>Wo liegen die Daten?</h2><ul><li>Die App-Seite liegt bei <b>GitHub Pages</b> (GitHub Inc., USA). Beim Aufruf verarbeitet GitHub technisch deine IP-Adresse.</li><li>Konto- und Trainingsdaten liegen in einer <b>Google-Tabelle</b> im Google-Konto von Max; Erinnerungs-Mails werden über Google verschickt (Google Ireland Ltd. / Google LLC, USA).</li></ul>'
  +'<p>Es gibt keine Cookies zu Werbe- oder Analysezwecken. Die App merkt sich nur deine Anmeldung und Einstellungen im Speicher deines Browsers.</p>'
  +'<h2>Warum und wie lange?</h2><p>Grundlage ist deine Einwilligung bei der Registrierung (Art. 6 Abs. 1 a DSGVO). Die Daten bleiben gespeichert, solange du mitmachst. Du kannst jederzeit widerrufen: Dann wird dein Konto mit allen Daten gelöscht.</p>'
@@ -251,7 +252,7 @@ loadRank=async function(){try{const r=await api("list");if(r.ok){others=r.users|
 let ONL={},CHEERS=[],pingBusy=false;
 css.textContent+=".onb{font-size:12px;font-weight:700;margin-left:6px;white-space:nowrap}.cheer{margin-left:6px;padding:4px 10px;font-size:13px;border-radius:14px;border:1px solid var(--warn);background:transparent;color:var(--warn);cursor:pointer}#chBan{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:var(--warn);color:#000;font-weight:800;padding:12px 18px;border-radius:16px;z-index:70;box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:17px;text-align:center;max-width:90vw;transition:opacity .4s}";
 async function ping(){if(!token||pingBusy||!navigator.onLine)return;pingBusy=true;
-  try{const r=await api("ping",{token,st:running?"run":"app"});if(r&&r.ok){ONL=r.on||{};(r.ch||[]).forEach(gotCheer);paintOnline()}}catch(e){}pingBusy=false}
+  try{const r=await api("ping",{token,st:running?"run":"app"});if(r&&r.ok){ONL=r.on||{};(r.ch||[]).forEach(gotCheer);paintOnline();chatCv(r.cv)}}catch(e){}pingBusy=false}
 function gotCheer(c){const n=String(c.von||"Jemand");CHEERS.push(n);confetti();
   let b=$("chBan");if(!b){b=document.createElement("div");b.id="chBan";document.body.appendChild(b)}b.textContent="📣 "+n+" feuert dich an – gib alles!";b.style.opacity="1";clearTimeout(b._t);b._t=setTimeout(()=>b.style.opacity="0",4500);
   chQ.push(n);if(!chT)chT=setInterval(chTick,400);chT0=chT0||Date.now()}
@@ -335,13 +336,13 @@ function duCoin(d,ok){duAct({do:"coin",id:d.id,ok:ok?1:0},r=>{if(ok){confetti();
   else duAct({do:"answer",id:D0.d.id,v},r=>{if(r.sieger===state.name){confetti();put("🏆 Du hast das Duell gewonnen"+(r.extra?" – +1 Extrapunkt!":"!"))}else if(r.sieger)put("😤 "+r.sieger+" bleibt vorne ("+duV(D0.d.ex,r.v1)+"). Revanche im Ranking!");else put("🤝 Unentschieden – genau gleich!")})}}
 {const _q=rrQuit;rrQuit=function(){DUEL=null;return _q.apply(this,arguments)}}
 function renderDuels(){const rl=$("rankList");if(!rl)return;const me=state.name,L=window.DU||[];
-  rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r||r.me)return;el.onclick=e=>{if(e.target.closest("button"))return;openDuel(r.name)}});
+  rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r||r.me)return;el.onclick=e=>{if(e.target.closest("button"))return;openProfile(r.name)}});
   const W=duWins();rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r)return;el.querySelectorAll(".dutag").forEach(x=>x.remove());const w=W[r.name];if(!w)return;
     const sm=el.querySelector(".nm small");if(sm)Object.keys(w).forEach(k=>{const t=document.createElement("span");t.className="dutag";t.textContent="⚔️ "+((duX(k)||{}).n||k)+" #"+w[k];sm.after(t)})});
   let card=$("duelCard");if(!card){card=document.createElement("div");card.className="card";card.id="duelCard";const rc=rl.closest(".card");if(rc)rc.after(card);else return}
   const mine=me?L.filter(d=>d.an===me&&d.st==="open"):[],coin=me?L.filter(d=>d.von===me&&d.st==="coin"):[],ssp=me?L.filter(d=>d.st==="ssp"&&((d.von===me&&!d.sv)||(d.an===me&&!d.sa))):[],sspW=me?L.filter(d=>d.st==="ssp"&&((d.von===me&&d.sv)||(d.an===me&&d.sa))):[],wait=me?L.filter(d=>(d.von===me&&d.st==="open")||(d.an===me&&d.st==="coin")):[],done=L.filter(d=>["done","coindone","sspdone","sspcoin"].includes(d.st)).sort((a,b)=>b.z-a.z).slice(0,6);
   const line=d=>{const x=duX(d.ex),n=x?x.n:d.exn;return '<b>'+E(d.von)+'</b> ⚔️ <b>'+E(d.an)+'</b> · '+E(n)+(d.tie?' · 🏅 um 1 Punkt':'')};
-  let h='<h3>⚔️ Duelle</h3><p class="note" style="margin:-4px 0 8px">Tippe im Ranking auf einen Namen, um ihn herauszufordern.</p>';
+  let h='<h3>⚔️ Duelle</h3><p class="note" style="margin:-4px 0 8px">Tippe im Ranking auf einen Namen, um ihn herauszufordern, als Freund hinzuzufügen oder anzuschreiben.</p>';
   mine.forEach(d=>h+='<div class="dui">🔔 '+line(d)+'<br>Vorgelegt: <b>'+E(duV(d.ex,d.v1))+'</b> – du bist dran!<div class="row"><button class="chip" data-acc="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Annehmen & loslegen</button><button class="chip" data-dec="'+E(d.id)+'">Ablehnen</button></div></div>');
   coin.forEach(d=>h+='<div class="dui">🪙 '+E(d.an)+' schlägt einen Münzwurf um den Extrapunkt vor ('+E((duX(d.ex)||{}).n||d.exn)+').<div class="row"><button class="chip" data-cy="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Einverstanden – werfen</button><button class="chip" data-cn="'+E(d.id)+'">Nein</button></div></div>');
   ssp.forEach(d=>h+='<div class="dui">✂️🪨📄 '+(d.von===me?E(d.an)+' will Schere-Stein-Papier um den Extrapunkt ('+E((duX(d.ex)||{}).n||d.exn)+'). Einverstanden? Dann wähl geheim:':'Runde '+d.rd+' Schere-Stein-Papier gegen '+E(d.von)+' – wähl geheim:')+sspBtns('data-sp="'+E(d.id)+'" data-h')+(d.von===me&&d.rd<=1?'<div class="row"><button class="chip" data-sn="'+E(d.id)+'">Nein, kein Glücksspiel</button></div>':'')+'</div>');
@@ -373,6 +374,82 @@ function duPop(mine,coin,ssp){const me=state.name,L=window.DU||[];if(!me||runnin
   else if(d.st==="done")t=(d.w===me?"🏆 Gewonnen! <b>"+E(other)+"</b> hat dein "+n+" nicht geknackt":d.w?"😤 <b>"+E(other)+"</b> hat dich geschlagen":"🤝 Unentschieden gegen <b>"+E(other)+"</b>")+"<br>"+n+": du "+E(duV(d.ex,d.v1))+" · "+E(other)+" "+E(duV(d.ex,d.v2))+(d.w===me&&d.tie?"<br>+1 Extrapunkt!":"");
   else t=(d.st==="sspcoin"?"✂️🪨📄 2× Unentschieden – der Münzwurf entscheidet:":d.st==="sspdone"?"✂️🪨📄 "+E(d.von)+" "+(SSPI[d.sv]||"")+" · "+E(d.an)+" "+(SSPI[d.sa]||""):"🪙 Münzwurf:")+"<br><b style=\"font-size:20px\">"+E(d.w)+" bekommt den Extrapunkt!</b>";
   if(d.w===me)confetti();ask(t,d.w&&d.w!==me&&d.st==="done"?()=>openDuel(other):()=>{},null,d.w&&d.w!==me&&d.st==="done"?"🔁 Revanche":"Ok",d.w&&d.w!==me&&d.st==="done"?"Später":"Schließen")}
+
+// ---------- Freunde & Chat ----------
+let CHAT={fr:[],inc:[],out:[],bl:[],m:[],adm:false},chCv=null,chConv=null,chBusy=false,chFirst=true;const chAsked={};
+css.textContent+="#tab-chat .cl{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #ffffff14;cursor:pointer}#tab-chat .cl:first-of-type{border-top:0}#tab-chat .cl .tx{flex:1;min-width:0}#tab-chat .cl .tx small{display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+ +".cbdg{display:inline-block;min-width:20px;padding:1px 6px;border-radius:10px;background:var(--acc);color:#000;font-size:12px;font-weight:800;text-align:center}#menu .tabs button .cbdg{position:absolute;top:3px;right:6px;font-size:11px;min-width:16px;padding:0 4px;line-height:16px}#menu .tabs button{position:relative}"
+ +"#chMsgs{max-height:calc(100vh - 300px);min-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0}.bub{max-width:82%;padding:8px 11px;border-radius:14px;background:#232733;font-size:15px;line-height:1.35;white-space:pre-wrap;word-wrap:break-word;align-self:flex-start;cursor:pointer}.bub.me{align-self:flex-end;background:#1f5c3c}.bub small{display:block;color:var(--mut);font-size:11px;margin-top:2px}.bub b{display:block;font-size:12px;color:var(--warn)}.chday{align-self:center;font-size:12px;color:var(--mut);margin:6px 0}"
+ +"#chIn{display:flex;gap:8px;margin-top:8px}#chIn textarea{flex:1;min-height:44px;max-height:120px;resize:none;border-radius:12px;border:1px solid #2a2e37;background:var(--card);color:var(--fg);font:inherit;padding:10px}#chIn button{border:0;border-radius:12px;background:var(--acc);color:#000;font-weight:800;padding:0 16px;font-size:18px}";
+const chKey=c=>"chR_"+(c==="*"?"*":c);
+const chConvOf=m=>m.an==="*"?"*":m.von===state.name?m.an:m.von;
+const chUnread=c=>{const r=+ls(chKey(c),0);return CHAT.m.filter(m=>chConvOf(m)===c&&m.von!==state.name&&m.z>r).length};
+const chUnreadAll=()=>["*"].concat(CHAT.fr).reduce((a,c)=>a+chUnread(c),0)+CHAT.inc.length;
+const chTime=z=>{const d=new Date(z),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
+async function chAct(body,ok){try{const r=await api("chat",Object.assign({token},body));if(r.ok){if(ok)ok(r)}else toast(r.err==="unbekannte Aktion"?"Chat wird gerade freigeschaltet – gleich nochmal":r.err||"Fehler");await chatSync();return r}catch(e){toast("Keine Verbindung");return null}}
+function chatCv(cv){if(cv&&cv!==chCv){chCv=cv;chatSync()}}
+async function chatSync(){if(!token||chBusy)return;chBusy=true;try{const r=await api("chat",{token,do:"sync"});if(r&&r.ok){CHAT=r;if(r.cv)chCv=r.cv;renderChat();chPop()}}catch(e){}chBusy=false}
+function chBadge(){const b=document.querySelector('#menu .tabs button[data-t="chat"]');if(!b)return;let s=b.querySelector(".cbdg");const n=chUnreadAll();if(!n){if(s)s.remove();return}if(!s){s=document.createElement("span");s.className="cbdg";b.appendChild(s)}s.textContent=n>99?"99+":n}
+function chPop(){const me=state.name;if(!me)return;chBadge();
+  const w=$("whoBox");if(w){w.querySelectorAll(".chh").forEach(x=>x.remove());const n=chUnreadAll();if(n){const c=w.querySelector(".card")||w;c.insertAdjacentHTML("beforeend",'<p class="chh" style="margin-top:8px;cursor:pointer;color:var(--acc)">💬 '+(CHAT.inc.length?CHAT.inc.length+" Freundschaftsanfrage"+(CHAT.inc.length>1?"n":"")+(n>CHAT.inc.length?" · ":""):"")+(n>CHAT.inc.length?(n-CHAT.inc.length)+" neue Nachricht"+(n-CHAT.inc.length>1?"en":""):"")+' – öffnen</p>');c.querySelector(".chh").onclick=()=>chOpenTab()}}
+  if(running||RR||getComputedStyle($("modal")).display!=="none"||($("duelO")&&$("duelO").style.display==="block"))return;
+  const f=CHAT.inc.find(x=>!chAsked[x]);if(f){chAsked[f]=1;ask("👋 <b>"+E(f)+"</b> möchte mit dir befreundet sein – dann könnt ihr euch Nachrichten schreiben.",()=>chAct({do:"acc",who:f},()=>toast("🤝 Ihr seid jetzt Freunde")),null,"Annehmen","Später");return}
+  if(chFirst){chFirst=false;const n=chUnreadAll();if(n)toast("💬 "+n+" neue Nachricht"+(n>1?"en":"")+" im Chat")}}
+function chOpenTab(c){const b=document.querySelector('#menu .tabs button[data-t="chat"]');if(c!==undefined)chConv=c;if(b)b.click()}
+function openProfile(name){if(!token){showLogin();return}const el=duOverlay(),fr=CHAT.fr.includes(name),inc=CHAT.inc.includes(name),out=CHAT.out.includes(name),bl=CHAT.bl.includes(name),on=ONL[name];
+  el.innerHTML='<div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1 id="pfN"></h1><button class="chip" id="duX">✕</button></div><p class="note" style="margin:4px 0 14px" id="pfS"></p>'
+   +'<button class="wbtn" id="pfD" style="text-align:center"><b style="margin:0">⚔️ Herausfordern</b><span>Übung wählen und vorlegen</span></button>'
+   +(fr?'<button class="wbtn" id="pfC" style="text-align:center"><b style="margin:0">💬 Nachricht schreiben</b><span>Einzelchat – nur ihr beide</span></button>'
+     :bl?'<button class="wbtn" id="pfU" style="text-align:center"><b style="margin:0">🔓 Blockierung aufheben</b><span>Du hast diese Person blockiert</span></button>'
+     :inc?'<button class="wbtn" id="pfA" style="text-align:center;border:1px solid var(--acc)"><b style="margin:0">🤝 Freundschaft annehmen</b><span>Möchte mit dir befreundet sein</span></button>'
+     :out?'<button class="wbtn" style="text-align:center;opacity:.6"><b style="margin:0">⏳ Anfrage gesendet</b><span>Wartet auf Bestätigung</span></button>'
+     :'<button class="wbtn" id="pfF" style="text-align:center"><b style="margin:0">➕ Freund hinzufügen</b><span>Danach könnt ihr euch schreiben</span></button>')
+   +'<button class="chip" id="pfG" style="margin-top:10px">💬 Zum Gruppenchat „Alle“</button>'+(fr?' <button class="chip" id="pfR" style="margin-top:10px">Freundschaft beenden</button>':'')+(!bl?' <button class="chip" id="pfB" style="margin-top:10px">🚫 Blockieren</button>':'')+'</div>';
+  $("pfN").textContent=name;const r=RK.find(x=>x.name===name);$("pfS").textContent=(r?r.pl+". Platz · "+r.pts+" Punkte":"")+(on?(r?" · ":"")+(on==="run"?"🏋️ trainiert gerade":"🟢 online"):"")+(fr?" · 🤝 Freunde":"");
+  $("duX").onclick=duClose;$("pfD").onclick=()=>{duClose();openDuel(name)};$("pfG").onclick=()=>{duClose();chOpenTab("*")};
+  const b=(id,f)=>{const x=$(id);if(x)x.onclick=f};
+  b("pfC",()=>{duClose();chOpenTab(name)});b("pfF",()=>{duClose();chAct({do:"req",who:name},r=>toast(r.st==="ok"?"🤝 Ihr seid jetzt Freunde":"➕ Anfrage an "+name+" gesendet"))});
+  b("pfA",()=>{duClose();chAct({do:"acc",who:name},()=>toast("🤝 Ihr seid jetzt Freunde"))});b("pfU",()=>{duClose();chAct({do:"unblock",who:name},()=>toast("Blockierung aufgehoben"))});
+  b("pfR",()=>ask("Freundschaft mit "+E(name)+" beenden? Euer Einzelchat ist dann gesperrt.",()=>{duClose();chAct({do:"unf",who:name})},null,"Beenden","Abbrechen"));
+  b("pfB",()=>ask("<b>"+E(name)+"</b> blockieren?<br><span style=\"font-size:14px\">Du siehst keine Nachrichten mehr von dieser Person, auch nicht im Gruppenchat. Sie wird nicht benachrichtigt.</span>",()=>{duClose();chAct({do:"block",who:name},()=>toast("🚫 Blockiert"))},null,"Blockieren","Abbrechen"));
+  el.style.display="block";el.scrollTop=0;if(typeof backGuard==="function")backGuard()}
+function renderChat(){chBadge();const tc=$("tab-chat");if(!tc||tc.style.display==="none")return;const me=state.name;
+  if(!token){tc.innerHTML='<div class="card"><p>Bitte zuerst anmelden.</p></div>';return}
+  if(chConv!==null&&chConv!=="*"&&!CHAT.fr.includes(chConv))chConv=null;
+  if(chConv===null){const last=c=>{const l=CHAT.m.filter(m=>chConvOf(m)===c);return l[l.length-1]};
+    const row=(c,title,sub)=>{const l=last(c),u=chUnread(c);return '<div class="cl" data-c="'+E(c)+'"><div style="font-size:24px">'+(c==="*"?"👥":"🙂")+'</div><div class="tx"><b>'+E(title)+'</b><small>'+(l?E((l.von===me?"Du":l.von)+": "+l.t):E(sub))+'</small></div>'+(u?'<span class="cbdg">'+u+'</span>':l?'<small style="color:var(--mut)">'+chTime(l.z)+'</small>':'')+'</div>'};
+    const all=(typeof others!=="undefined"?others:[]).map(u=>u.name).filter(n=>n&&n!==me&&!CHAT.fr.includes(n)&&!CHAT.inc.includes(n)&&!CHAT.out.includes(n)&&!CHAT.bl.includes(n)).sort((a,b)=>a.localeCompare(b));
+    let h='<div class="card"><h3>💬 Chats</h3>'+row("*","Alle (Gruppenchat)","Für alle in der Challenge sichtbar")
+      +CHAT.fr.slice().sort((a,b)=>((last(b)||{}).z||0)-((last(a)||{}).z||0)).map(f=>row(f,f,"Noch keine Nachrichten – sag Hallo 👋")).join("")
+      +(CHAT.fr.length?'':'<p class="note" style="margin:8px 0 0">Einzelchats gehen mit Freunden. Füg unten jemanden hinzu – oder tipp im Ranking auf einen Namen.</p>')+'</div>';
+    if(CHAT.inc.length)h+='<div class="card"><h3>👋 Freundschaftsanfragen</h3>'+CHAT.inc.map(n=>'<div class="dui"><b>'+E(n)+'</b> möchte mit dir befreundet sein<div class="row"><button class="chip" data-acc="'+E(n)+'" style="border-color:var(--acc);color:var(--acc)">Annehmen</button><button class="chip" data-dec="'+E(n)+'">Ablehnen</button></div></div>').join("")+'</div>';
+    h+='<div class="card"><h3>➕ Freunde finden</h3>'+(CHAT.out.length?'<p class="note" style="margin:0 0 6px">⏳ Angefragt: '+E(CHAT.out.join(", "))+'</p>':'')
+      +(all.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+all.map(n=>'<button class="chip" data-req="'+E(n)+'">➕ '+E(n)+'</button>').join("")+'</div>':'<p class="note" style="margin:0">Alle sind schon deine Freunde 🎉</p>')
+      +(CHAT.bl.length?'<p class="note" style="margin:10px 0 0">🚫 Blockiert: '+CHAT.bl.map(n=>'<a href="#" data-unb="'+E(n)+'">'+E(n)+'</a>').join(", ")+' (antippen zum Aufheben)</p>':'')+'</div>';
+    tc.innerHTML=h;
+    tc.querySelectorAll("[data-c]").forEach(x=>x.onclick=()=>{chConv=x.dataset.c;renderChat()});
+    tc.querySelectorAll("[data-acc]").forEach(x=>x.onclick=()=>chAct({do:"acc",who:x.dataset.acc},()=>toast("🤝 Ihr seid jetzt Freunde")));
+    tc.querySelectorAll("[data-dec]").forEach(x=>x.onclick=()=>chAct({do:"dec",who:x.dataset.dec}));
+    tc.querySelectorAll("[data-req]").forEach(x=>x.onclick=()=>chAct({do:"req",who:x.dataset.req},r=>toast(r.st==="ok"?"🤝 Ihr seid jetzt Freunde":"➕ Anfrage gesendet")));
+    tc.querySelectorAll("[data-unb]").forEach(x=>x.onclick=e=>{e.preventDefault();chAct({do:"unblock",who:x.dataset.unb})});return}
+  const c=chConv,L=CHAT.m.filter(m=>chConvOf(m)===c),keep=$("chTxt")?$("chTxt").value:"",old=$("chMsgs"),atEnd=!old||old.scrollHeight-old.scrollTop-old.clientHeight<60;
+  let h='<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><button class="chip" id="chBack">←</button><h3 style="margin:0;flex:1;text-align:center">'+(c==="*"?"👥 Alle":"🙂 "+E(c))+'</h3>'+(c==="*"?'<span style="width:40px"></span>':'<button class="chip" id="chProf">⋯</button>')+'</div>'
+   +(c==="*"?'<p class="note" style="margin:6px 0 0;text-align:center">Gruppenchat – alle in der Challenge lesen mit</p>':'')+'<div id="chMsgs">';
+  let day="";L.forEach(m=>{const d=new Date(m.z).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});if(d!==day){day=d;h+='<div class="chday">'+d+'</div>'}
+    const mine=m.von===state.name;h+='<div class="bub'+(mine?' me':'')+'" data-id="'+E(m.id)+'">'+(!mine&&c==="*"?'<b>'+E(m.von)+'</b>':'')+E(m.t)+'<small>'+new Date(m.z).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+'</small></div>'});
+  if(!L.length)h+='<p class="note" style="text-align:center;margin:20px 0">Noch keine Nachrichten. Fang an! 💪</p>';
+  h+='</div><div id="chIn"><textarea id="chTxt" maxlength="500" placeholder="Nachricht …"></textarea><button id="chSend">➤</button></div></div>';
+  tc.innerHTML=h;const box=$("chMsgs"),ta=$("chTxt");ta.value=keep;if(atEnd)box.scrollTop=box.scrollHeight;
+  const last=L.length?L[L.length-1].z:0;if(last>+ls(chKey(c),0))lsSet(chKey(c),last);chBadge();
+  $("chBack").onclick=()=>{chConv=null;renderChat()};if($("chProf"))$("chProf").onclick=()=>openProfile(c);
+  const send=()=>{const t=ta.value.trim();if(!t)return;ta.value="";const tmp={id:"tmp"+Date.now(),z:Date.now(),von:state.name,an:c,t};CHAT.m.push(tmp);renderChat();chAct({do:"send",to:c,t})};
+  $("chSend").onclick=send;ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&window.innerWidth>700){e.preventDefault();send()}};
+  box.querySelectorAll(".bub").forEach(b=>b.onclick=()=>{const m=L.find(x=>x.id===b.dataset.id);if(!m||/^tmp/.test(m.id))return;
+    if(m.von===state.name||CHAT.adm)ask("Nachricht löschen?<br><span style=\"font-size:14px\">„"+E(m.t.slice(0,80))+"“</span>",()=>chAct({do:"del",id:m.id},()=>toast("Gelöscht")),null,"Löschen","Abbrechen");
+    else ask("Nachricht von <b>"+E(m.von)+"</b> melden?<br><span style=\"font-size:14px\">Max schaut sie sich an.</span>",()=>chAct({do:"report",id:m.id},()=>toast("Gemeldet – danke")),null,"Melden","Abbrechen")})}
+setInterval(()=>{if(document.visibilityState==="visible"&&chConv!==null&&$("tab-chat")&&$("tab-chat").style.display!=="none")ping()},8000);
+window.renderChat=renderChat;
+setTimeout(chatSync,3000);
 
 // ---------- Einhängen ----------
 {const _bs=backStep;backStep=function(){

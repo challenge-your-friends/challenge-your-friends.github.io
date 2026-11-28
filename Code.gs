@@ -106,7 +106,7 @@ function doPost(e) {
     if (m0 && c0.get('allk')) { const l0 = LockService.getScriptLock(); if (!l0.tryLock(8000)) return out_({ ok: false, err: 'beschäftigt' }); try { return out_(live_(JSON.parse(m0), q0)); } finally { l0.releaseLock(); } }
   }
   const lock = LockService.getScriptLock();
-  if (q0.a !== 'list' && !lock.tryLock(25000)) return out_({ ok: false, err: 'Server gerade beschäftigt – bitte gleich nochmal versuchen' });
+  if (q0.a !== 'list' && !(q0.a === 'chat' && q0.do === 'sync') && !lock.tryLock(25000)) return out_({ ok: false, err: 'Server gerade beschäftigt – bitte gleich nochmal versuchen' });
   try {
     const q = JSON.parse(e.postData.contents || '{}');
     const { sh, rows } = rows_();
@@ -225,6 +225,11 @@ function doPost(e) {
       const r = byToken(q.token);
       if (!r) return out_({ ok: false, err: 'auth' });
       return out_(duel_(r, rows, sh, q));
+    }
+    if (q.a === 'chat') {
+      const r = byToken(q.token);
+      if (!r) return out_({ ok: false, err: 'auth' });
+      return out_(chat_(r, rows, q));
     }
     if (q.a === 'feedback') {
       const r = byToken(q.token);
@@ -429,7 +434,7 @@ function live_(me, q) {
     let keys = []; try { keys = JSON.parse(c.get('allk') || '[]'); } catch (e) {}
     const got = keys.length ? c.getAll(keys.map(k => 'on_' + k)) : {}, on = {};
     Object.keys(got).forEach(k => { try { const o = JSON.parse(got[k]); if (now - o.t < 75000) on[o.n] = o.s; } catch (e) {} });
-    return { ok: true, ch: ch, on: on };
+    return { ok: true, ch: ch, on: on, cv: c.get('cv') || '0' };
   }
   const to = String(q.to || '').trim().toLowerCase();
   if (to === me.k) return { ok: false, err: 'Selbst anfeuern zählt nicht 😉' };
@@ -537,6 +542,68 @@ function duel_(r, rows, sh, q) {
 function duelList_() {
   const s = sheet_().getParent().getSheetByName('Duelle'); if (!s) return [];
   return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra), sa: /^ssp(done|coin)$/.test(x.status) ? String(x.sspAn) : !!x.sspAn, sv: /^ssp(done|coin)$/.test(x.status) ? String(x.sspVon) : !!x.sspVon, rd: +x.runde || 0 }));
+}
+
+// ---------- Freunde & Chat (Blätter "Freunde" und "Nachrichten") ----------
+// Einzelchats nur unter Freunden (Anfrage muss angenommen werden), dazu ein Gruppenchat "Alle" (an = '*').
+const FR_H = ['a', 'b', 'status', 'von', 'zeit'], MSG_H = ['id', 'zeit', 'von', 'vonName', 'an', 'text', 'status'];
+function shX_(name, H) {
+  const ss = sheet_().getParent(); let s = ss.getSheetByName(name);
+  if (!s) { s = ss.insertSheet(name); s.appendRow(H); s.setFrozenRows(1); }
+  return s;
+}
+function shRows_(s, H) { return s.getDataRange().getValues().slice(1).map((r, i) => { const o = { row: i + 2 }; H.forEach((h, j) => o[h] = r[j]); return o; }); }
+function cvBump_() { CacheService.getScriptCache().put('cv', String(Date.now()), 21600); }
+function chat_(r, rows, q) {
+  const me = r.o, mk = me.nameKey, nm = {}; rows.forEach(x => nm[x.o.nameKey] = x.o.name);
+  const fs = shX_('Freunde', FR_H), F = shRows_(fs, FR_H);
+  const pk = k => mk < k ? [mk, k] : [k, mk];
+  const pair = k => { const p = pk(k); return F.find(x => x.a === p[0] && x.b === p[1]); };
+  const setPair = (k, st, von) => { const f = pair(k), p = pk(k); if (f) fs.getRange(f.row, 3, 1, 3).setValues([[st, von, new Date()]]); else fs.appendRow([p[0], p[1], st, von, new Date()]); cvBump_(); };
+  const keyOf = n => String(n || '').trim().toLowerCase();
+  if (q.do === 'sync') {
+    const mine = F.filter(x => x.a === mk || x.b === mk).map(x => ({ k: x.a === mk ? x.b : x.a, st: x.status, von: x.von }));
+    const blk = mine.filter(x => x.st === 'block' && x.von === mk).map(x => x.k);
+    const ms = shX_('Nachrichten', MSG_H);
+    const M = shRows_(ms, MSG_H).filter(x => x.status !== 'del' && (x.an === '*' || x.an === mk || x.von === mk) && blk.indexOf(x.von) < 0).slice(-400);
+    return { ok: true, cv: CacheService.getScriptCache().get('cv') || '0',
+      fr: mine.filter(x => x.st === 'ok').map(x => nm[x.k] || x.k),
+      inc: mine.filter(x => x.st === 'pending' && x.von !== mk).map(x => nm[x.k] || x.k),
+      out: mine.filter(x => x.st === 'pending' && x.von === mk).map(x => nm[x.k] || x.k),
+      bl: blk.map(k => nm[k] || k), adm: mk === ADMIN_KEY,
+      m: M.map(x => ({ id: String(x.id), z: x.zeit instanceof Date ? x.zeit.getTime() : Date.parse(x.zeit) || 0, von: String(x.vonName), an: x.an === '*' ? '*' : (nm[x.an] || String(x.an)), t: String(x.text) })) };
+  }
+  if (q.do === 'send') {
+    const t = String(q.t || '').replace(/\s+$/, '').slice(0, 500); if (!t.trim()) return { ok: false, err: 'Leere Nachricht' };
+    let an = '*';
+    if (q.to !== '*') { an = keyOf(q.to); const f = pair(an); if (!nm[an] || !f || f.status !== 'ok') return { ok: false, err: 'Nur mit Freunden möglich' }; }
+    const c = CacheService.getScriptCache(), rk = 'rl_' + mk, n = +(c.get(rk) || 0);
+    if (n >= 15) return { ok: false, err: 'Kurz durchatmen – zu viele Nachrichten in einer Minute' };
+    c.put(rk, String(n + 1), 60);
+    const id = Utilities.getUuid().slice(0, 10);
+    shX_('Nachrichten', MSG_H).appendRow([id, new Date(), mk, me.name, an, t, '']); cvBump_();
+    return { ok: true, id: id };
+  }
+  if (q.do === 'del' || q.do === 'report') {
+    const ms = shX_('Nachrichten', MSG_H), x = shRows_(ms, MSG_H).find(y => String(y.id) === String(q.id || ''));
+    if (!x) return { ok: false, err: 'Nachricht nicht gefunden' };
+    if (q.do === 'del') { if (x.von !== mk && mk !== ADMIN_KEY) return { ok: false, err: 'Nur eigene Nachrichten' }; ms.getRange(x.row, 7).setValue('del'); cvBump_(); return { ok: true }; }
+    ms.getRange(x.row, 7).setValue('gemeldet von ' + me.name); return { ok: true };
+  }
+  const k = keyOf(q.who); if (!nm[k] || k === mk) return { ok: false, err: 'Person nicht gefunden' };
+  const f = pair(k), st = f ? f.status : '';
+  if (q.do === 'req') {
+    if (st === 'ok') return { ok: true, st: 'ok' };
+    if (st === 'block') return { ok: false, err: 'Geht leider nicht' };
+    if (st === 'pending' && f.von !== mk) { setPair(k, 'ok', f.von); return { ok: true, st: 'ok' }; }
+    if (st === 'pending') return { ok: true, st: 'pending' };
+    setPair(k, 'pending', mk); return { ok: true, st: 'pending' };
+  }
+  if (q.do === 'acc') { if (st !== 'pending' || f.von === mk) return { ok: false, err: 'Keine offene Anfrage' }; setPair(k, 'ok', f.von); return { ok: true }; }
+  if (q.do === 'dec' || q.do === 'unf') { if (st === 'block') return { ok: true }; setPair(k, 'no', mk); return { ok: true }; }
+  if (q.do === 'block') { setPair(k, 'block', mk); return { ok: true }; }
+  if (q.do === 'unblock') { if (st === 'block' && f.von === mk) setPair(k, 'no', mk); return { ok: true }; }
+  return { ok: false, err: 'unbekannt' };
 }
 
 // ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------
