@@ -512,6 +512,12 @@ function duel_(r, rows, sh, q) {
     if ((isV && d.sspVon) || (isA && d.sspAn)) return { ok: false, err: 'Du hast schon gewählt – warte auf den anderen' };
     const a = isA ? q.h : String(d.sspAn), v = isV ? q.h : String(d.sspVon);
     if (!a || !v) { duSet_(s, d, isV ? { sspVon: q.h } : { sspAn: q.h }); return { ok: true, wait: true }; }
+    if (a === v && (+d.runde || 1) >= 2) {
+      const cw = Math.random() < 0.5 ? d.von : d.an, cwn = cw === d.von ? d.vonName : d.anName;
+      duSet_(s, d, { sspAn: a, sspVon: v, status: 'sspcoin', sieger: cwn, fertig: new Date() });
+      duPoint_(sh, rows, cw, d.id, t, 'Münzwurf-Extrapunkt (nach 2× SSP)');
+      return { ok: true, draw: true, coin: true, h: a, sieger: cwn };
+    }
     if (a === v) { duSet_(s, d, { sspAn: '', sspVon: '', runde: (+d.runde || 1) + 1 }); return { ok: true, draw: true, h: a }; }
     const w = SSP_WIN_[v] === a ? d.von : d.an, wn = w === d.von ? d.vonName : d.anName;
     duSet_(s, d, { sspAn: a, sspVon: v, status: 'sspdone', sieger: wn, fertig: new Date() });
@@ -530,7 +536,7 @@ function duel_(r, rows, sh, q) {
 }
 function duelList_() {
   const s = sheet_().getParent().getSheetByName('Duelle'); if (!s) return [];
-  return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra), sa: x.status === 'sspdone' ? String(x.sspAn) : !!x.sspAn, sv: x.status === 'sspdone' ? String(x.sspVon) : !!x.sspVon, rd: +x.runde || 0 }));
+  return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra), sa: /^ssp(done|coin)$/.test(x.status) ? String(x.sspAn) : !!x.sspAn, sv: /^ssp(done|coin)$/.test(x.status) ? String(x.sspVon) : !!x.sspVon, rd: +x.runde || 0 }));
 }
 
 // ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------
