@@ -482,9 +482,16 @@ function duel_(r, rows, sh, q) {
   if (q.do === 'new') {
     const to = String(q.to || '').trim().toLowerCase(), o = rows.find(x => x.o.nameKey === to);
     if (!o || to === mk) return { ok: false, err: 'Gegner nicht gefunden' };
+    if (q.ex === 'ssp') {
+      if (!SSP_[q.h]) return { ok: false, err: 'Schere, Stein oder Papier wählen' };
+      if (D.some(x => (x.status === 'open' || x.status === 'ssp') && pair(x, mk, to))) return { ok: false, err: 'Zwischen euch läuft schon ein Duell' };
+      const sid = Utilities.getUuid().slice(0, 8);
+      s.appendRow([sid, new Date(), mk, me.name, to, o.o.name, 'ssp', 'Schere-Stein-Papier', 'ssp', 0, '', 'ssp', '', 0, 'w' + weekKey_(t), '', '', q.h, 1]);
+      return { ok: true, id: sid, tie: false };
+    }
     const ex = String(q.ex || '').slice(0, 20), exn = String(q.exn || '').slice(0, 40), art = ['h', 'r', 'st'].indexOf(q.art) >= 0 ? q.art : 'h', v = Math.round(+q.v || 0);
     if (!/^[a-z0-9]+$/.test(ex) || !(v > 0 && v < 100000)) return { ok: false, err: 'Ungültiger Wert' };
-    if (D.some(x => x.status === 'open' && pair(x, mk, to))) return { ok: false, err: 'Zwischen euch läuft schon ein Duell' };
+    if (D.some(x => (x.status === 'open' || x.status === 'ssp') && pair(x, mk, to))) return { ok: false, err: 'Zwischen euch läuft schon ein Duell' };
     if (D.filter(x => x.status === 'open' && x.von === mk).length >= 3) return { ok: false, err: 'Du hast schon 3 offene Duelle' };
     const wk = 'w' + weekKey_(t), pa = compute_(me, t).pts, pb = compute_(o.o, t).pts;
     const tie = pa === pb && !D.some(x => +x.extra && x.woche === wk && x.status !== 'expired' && pair(x, mk, to));
@@ -512,12 +519,12 @@ function duel_(r, rows, sh, q) {
   if (q.do === 'ssp') {
     const isV = d.von === mk, isA = d.an === mk;
     if ((!isV && !isA) || d.status !== 'ssp') return { ok: false, err: 'Geht nicht mehr' };
-    if (isV && !q.ok) { duSet_(s, d, { status: 'declined' }); return { ok: true }; }
+    if ((isV && !q.ok) || q.no) { duSet_(s, d, { status: 'declined', fertig: new Date() }); return { ok: true }; }
     if (!SSP_[q.h]) return { ok: false, err: 'Schere, Stein oder Papier wählen' };
     if ((isV && d.sspVon) || (isA && d.sspAn)) return { ok: false, err: 'Du hast schon gewählt – warte auf den anderen' };
     const a = isA ? q.h : String(d.sspAn), v = isV ? q.h : String(d.sspVon);
     if (!a || !v) { duSet_(s, d, isV ? { sspVon: q.h } : { sspAn: q.h }); return { ok: true, wait: true }; }
-    if (a === v && (+d.runde || 1) >= 2) {
+    if (a === v && +d.extra && (+d.runde || 1) >= 2) {
       const cw = Math.random() < 0.5 ? d.von : d.an, cwn = cw === d.von ? d.vonName : d.anName;
       duSet_(s, d, { sspAn: a, sspVon: v, status: 'sspcoin', sieger: cwn, fertig: new Date() });
       duPoint_(sh, rows, cw, d.id, t, 'Münzwurf-Extrapunkt (nach 2× SSP)');
@@ -526,8 +533,8 @@ function duel_(r, rows, sh, q) {
     if (a === v) { duSet_(s, d, { sspAn: '', sspVon: '', runde: (+d.runde || 1) + 1 }); return { ok: true, draw: true, h: a }; }
     const w = SSP_WIN_[v] === a ? d.von : d.an, wn = w === d.von ? d.vonName : d.anName;
     duSet_(s, d, { sspAn: a, sspVon: v, status: 'sspdone', sieger: wn, fertig: new Date() });
-    duPoint_(sh, rows, w, d.id, t, 'Schere-Stein-Papier-Extrapunkt');
-    return { ok: true, sieger: wn, a: a, v: v };
+    if (+d.extra) duPoint_(sh, rows, w, d.id, t, 'Schere-Stein-Papier-Extrapunkt');
+    return { ok: true, sieger: wn, a: a, v: v, extra: !!(+d.extra) };
   }
   if (q.do === 'coin') {
     if (d.von !== mk || d.status !== 'coin') return { ok: false, err: 'Geht nicht mehr' };
