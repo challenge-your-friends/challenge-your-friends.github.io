@@ -100,6 +100,11 @@ function doGet() { return out_({ ok: true, app: 'workout-coach' }); }
 function doPost(e) {
   // Ranking nur lesen – braucht keine Sperre (sonst hängt das Ranking, wenn gerade ein anderer Vorgang läuft)
   let q0 = {}; try { q0 = JSON.parse(e.postData.contents || '{}'); } catch (x) {}
+  // Schnellweg für Online-Status & Anfeuern (ohne die ganze Tabelle zu lesen)
+  if (q0.a === 'ping' || q0.a === 'cheer') {
+    const c0 = CacheService.getScriptCache(), m0 = q0.token ? c0.get('tk_' + q0.token) : null;
+    if (m0 && c0.get('allk')) { const l0 = LockService.getScriptLock(); if (!l0.tryLock(8000)) return out_({ ok: false, err: 'beschäftigt' }); try { return out_(live_(JSON.parse(m0), q0)); } finally { l0.releaseLock(); } }
+  }
   const lock = LockService.getScriptLock();
   if (q0.a !== 'list' && !lock.tryLock(25000)) return out_({ ok: false, err: 'Server gerade beschäftigt – bitte gleich nochmal versuchen' });
   try {
@@ -107,6 +112,14 @@ function doPost(e) {
     const { sh, rows } = rows_();
     const byToken = t => rows.find(r => t && r.o.token === t);
     const key = String(q.name || '').trim().toLowerCase();
+    CacheService.getScriptCache().put('allk', JSON.stringify(rows.map(r => r.o.nameKey)), 21600);
+    if (q.a === 'ping' || q.a === 'cheer') {
+      const r = byToken(q.token);
+      if (!r) return out_({ ok: false, err: 'auth' });
+      const me = { k: r.o.nameKey, n: r.o.name };
+      CacheService.getScriptCache().put('tk_' + q.token, JSON.stringify(me), 21600);
+      return out_(live_(me, q));
+    }
 
     if (q.a === 'register') {
       const name = String(q.name || '').trim().slice(0, 20);
@@ -399,6 +412,29 @@ function planAufraeumen_() {
 function aufraeumenNach() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'aufraeumenNach').forEach(t => ScriptApp.deleteTrigger(t));
   archiveCopies_(1);
+}
+
+// ---------- Online-Status & Anfeuern (nur im Cache, nichts wird dauerhaft gespeichert) ----------
+function live_(me, q) {
+  const c = CacheService.getScriptCache(), now = Date.now();
+  if (q.a === 'ping') {
+    c.put('on_' + me.k, JSON.stringify({ s: q.st === 'run' ? 'run' : 'app', t: now, n: me.n }), 120);
+    let ch = []; const raw = c.get('ch_' + me.k);
+    if (raw) { try { ch = JSON.parse(raw); } catch (e) {} c.remove('ch_' + me.k); }
+    let keys = []; try { keys = JSON.parse(c.get('allk') || '[]'); } catch (e) {}
+    const got = keys.length ? c.getAll(keys.map(k => 'on_' + k)) : {}, on = {};
+    Object.keys(got).forEach(k => { try { const o = JSON.parse(got[k]); if (now - o.t < 75000) on[o.n] = o.s; } catch (e) {} });
+    return { ok: true, ch: ch, on: on };
+  }
+  const to = String(q.to || '').trim().toLowerCase();
+  if (to === me.k) return { ok: false, err: 'Selbst anfeuern zählt nicht 😉' };
+  let o = null; try { o = JSON.parse(c.get('on_' + to) || 'null'); } catch (e) {}
+  if (!o || o.s !== 'run' || now - o.t > 75000) return { ok: false, err: 'Trainiert gerade nicht mehr' };
+  const lk = 'cl_' + me.k + '_' + to; if (c.get(lk)) return { ok: false, err: 'Schon angefeuert – in ein paar Minuten wieder' };
+  c.put(lk, '1', 600);
+  let ch = []; try { ch = JSON.parse(c.get('ch_' + to) || '[]'); } catch (e) {}
+  ch.push({ von: me.n, t: now }); c.put('ch_' + to, JSON.stringify(ch.slice(-20)), 3600);
+  return { ok: true };
 }
 
 // ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------

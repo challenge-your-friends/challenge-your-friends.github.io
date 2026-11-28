@@ -169,6 +169,8 @@ let doneCtx=null;
   const gain=compute().pts-p0,b=$("bShare");
   doneCtx=(k==="X"||np)?null:ch?{head:(ch.id[0]==="e"?"Dauer-Plank geschafft 🤪":"Challenge geschafft ⚡"),sub:ch.n}:{head:"Workout geschafft ✅",sub:(W[k]?W[k].t:"")+(gain>0?" · +"+gain+" Punkte":"")};
   if(b)b.style.display=doneCtx?"block":"none";
+  if(CHEERS.length){const u=[...new Set(CHEERS)];$("doneTxt").insertAdjacentHTML("beforeend",'<br>📣 Angefeuert von: <b class="chby"></b>');const x=$("doneTxt").querySelector(".chby");if(x)x.textContent=u.join(", ")}
+  setTimeout(ping,500);
   const nb=$("bNext");if(nb){const n=(k==="X"||np)?null:nextUp();
     if(n&&!n.fin&&n.k==="c"){nb.style.display="block";$("bNextT").textContent="Weiter: "+n.lab;$("bNextS").textContent=n.sub;nb.onclick=()=>{$("done").style.display="none";goNext(n)}}
     else if(n&&!n.fin&&/nachholen/.test(n.lab)){nb.style.display="block";nb.className="wbtn today";$("bNextT").textContent="Weiter: "+n.lab;$("bNextS").textContent=n.sub;nb.onclick=()=>{$("done").style.display="none";goNext(n)}}
@@ -243,12 +245,34 @@ function renderRx(){const m=curMsg();if(!m)return;const me=state.name,L=(window.
   [full,mini].forEach(b=>b&&b.querySelectorAll(".rxb button").forEach(x=>x.onclick=async()=>{x.disabled=true;await rxSend(m,{kind:"e",e:x.dataset.e});x.disabled=false}))}
 loadRank=async function(){try{const r=await api("list");if(r.ok){others=r.users||[];window.RX=r.rx||[];renderRank()}}catch(e){}};
 
+// ---------- Online-Status & Anfeuern ----------
+let ONL={},CHEERS=[],pingBusy=false;
+css.textContent+=".onb{font-size:12px;font-weight:700;margin-left:6px;white-space:nowrap}.cheer{margin-left:6px;padding:4px 10px;font-size:13px;border-radius:14px;border:1px solid var(--warn);background:transparent;color:var(--warn);cursor:pointer}#chBan{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:var(--warn);color:#000;font-weight:800;padding:12px 18px;border-radius:16px;z-index:70;box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:17px;text-align:center;max-width:90vw;transition:opacity .4s}";
+async function ping(){if(!token||pingBusy||!navigator.onLine)return;pingBusy=true;
+  try{const r=await api("ping",{token,st:running?"run":"app"});if(r&&r.ok){ONL=r.on||{};(r.ch||[]).forEach(gotCheer);paintOnline()}}catch(e){}pingBusy=false}
+function gotCheer(c){const n=String(c.von||"Jemand");CHEERS.push(n);confetti();
+  let b=$("chBan");if(!b){b=document.createElement("div");b.id="chBan";document.body.appendChild(b)}b.textContent="📣 "+n+" feuert dich an – gib alles!";b.style.opacity="1";clearTimeout(b._t);b._t=setTimeout(()=>b.style.opacity="0",4500);
+  try{if(running)say([{t:n+" feuert dich an! Gib alles!",k:[]}])}catch(e){}}
+function paintOnline(){const rows=$("rankList")&&$("rankList").querySelectorAll(".rk");if(!rows)return;
+  rows.forEach((el,i)=>{const r=RK[i];if(!r)return;el.querySelectorAll(".onb,.cheer").forEach(x=>x.remove());const st=ONL[r.name];if(!st)return;
+    const b=el.querySelector(".nm b");if(b)b.insertAdjacentHTML("afterend",st==="run"?'<span class="onb" style="color:var(--warn)">🏋️ trainiert gerade</span>':'<span class="onb" style="color:var(--acc)">🟢 online</span>');
+    if(st==="run"&&!r.me){const btn=document.createElement("button");btn.className="cheer";btn.textContent="📣 Anfeuern";el.querySelector(".nm").appendChild(btn);
+      btn.onclick=async()=>{if(!token){showLogin();return}btn.disabled=true;try{const x=await api("cheer",{token,to:r.name});toast(x.ok?"📣 "+r.name+" wird angefeuert!":(x.err==="unbekannte Aktion"?"Kommt gleich – bitte in ein paar Minuten nochmal":x.err||"Fehler"));if(x.ok){btn.textContent="✅ Angefeuert";confetti()}else btn.disabled=false}catch(e){toast("Keine Verbindung");btn.disabled=false}}}});
+  const w=$("whoBox"),now=Object.keys(ONL).filter(n=>ONL[n]==="run"&&n!==state.name);
+  if(w){w.querySelectorAll(".onl").forEach(x=>x.remove());if(now.length){const c=w.querySelector(".card")||w;c.insertAdjacentHTML("beforeend",'<p class="onl" style="margin-top:8px;cursor:pointer;color:var(--warn)">🏋️ Trainiert gerade: <b></b> – im Ranking anfeuern 📣</p>');
+    const p=c.querySelector(".onl");p.querySelector("b").textContent=now.join(", ");p.onclick=()=>document.querySelector('#menu .tabs button[data-t="rank"]').click()}}}
+setInterval(()=>{if(document.visibilityState==="visible")ping()},20000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(ping,500)});
+setTimeout(ping,2500);
+{const _st=start;start=async function(){CHEERS=[];const r=await _st.apply(this,arguments);setTimeout(ping,800);return r}}
+{const _sp=stop;stop=function(){const r=_sp.apply(this,arguments);setTimeout(ping,300);return r}}
+
 // ---------- Einhängen ----------
 {const _bs=backStep;backStep=function(){
   if($("modal")&&getComputedStyle($("modal")).display!=="none")return _bs();
   for(const [o,x] of [["shr","shrX"],["legal","legalX"]]){const el=$(o);if(el&&getComputedStyle(el).display!=="none"){if($(x))$(x).click();else el.style.display="none";return true}}
   return _bs()}}
-{const _rm=renderMenu;renderMenu=function(){_rm.apply(this,arguments);try{renderWho();renderExtra()}catch(e){console.error(e)}};
- const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra();renderRx()}catch(e){console.error(e)}}}
+{const _rm=renderMenu;renderMenu=function(){_rm.apply(this,arguments);try{renderWho();renderExtra();paintOnline()}catch(e){console.error(e)}};
+ const _rr=renderRank;renderRank=function(){_rr.apply(this,arguments);try{trackRank();renderWho();renderExtra();renderRx();paintOnline()}catch(e){console.error(e)}}}
 try{renderMenu()}catch(e){}
 })();
