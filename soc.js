@@ -27,6 +27,8 @@ function confetti(){if(document.getElementById("cft"))return;const c=document.cr
     if(e<D)requestAnimationFrame(step);else c.remove()})()}
 function renderWho(){const el=$("whoBox");if(!el)return;
   const t=todayK(),gn=$("grpNote");
+  {const h=document.querySelector("#tab-rank .card h3");if(h&&others.length){const inn=ALLU.filter(u=>u.G.in).length,out=ALLU.filter(u=>!u.G.in&&!u.G.never).length;
+    h.innerHTML='🏆 Ranking <span style="font-size:12px;color:var(--mut);font-weight:400;margin-left:6px">👥 '+inn+(t>=CH_START?' im Rennen':' dabei')+(t>=CH_START?' · 💀 '+out+' raus':'')+'</span>'}}
   if(gn)gn.innerHTML=t>=CH_START&&others.length?"🏅 <b>Gruppenpunkte: "+GP+"</b> – Tage, an denen alle Aktiven durch waren. Im Ranking steht, wer ab 1.12. mindestens ein Workout gemacht hat. 7 Tage ohne Training = Warnung, 14 Tage = raus (außer „🤒 Krank / Pause“ unter „Mehr“).":"";
   if(!others.length||!state.name||t<MYS()){el.innerHTML="";return}
   const act=RK.filter(r=>r.cnt),done=act.filter(r=>r.today),miss=act.filter(r=>!r.today),me=act.find(r=>r.me);
@@ -166,7 +168,11 @@ let doneCtx=null;
   _f.apply(this,arguments);
   const gain=compute().pts-p0,b=$("bShare");
   doneCtx=(k==="X"||np)?null:ch?{head:(ch.id[0]==="e"?"Dauer-Plank geschafft 🤪":"Challenge geschafft ⚡"),sub:ch.n}:{head:"Workout geschafft ✅",sub:(W[k]?W[k].t:"")+(gain>0?" · +"+gain+" Punkte":"")};
-  if(b)b.style.display=doneCtx?"block":"none"}}
+  if(b)b.style.display=doneCtx?"block":"none";
+  const nb=$("bNext");if(nb){const n=(k==="X"||np)?null:nextUp();
+    if(n&&!n.fin&&n.k==="c"){nb.style.display="block";$("bNextT").textContent="Weiter: "+n.lab;$("bNextS").textContent=n.sub;nb.onclick=()=>{$("done").style.display="none";goNext(n)}}
+    else if(n&&!n.fin&&/nachholen/.test(n.lab)){nb.style.display="block";nb.className="wbtn today";$("bNextT").textContent="Weiter: "+n.lab;$("bNextS").textContent=n.sub;nb.onclick=()=>{$("done").style.display="none";goNext(n)}}
+    else nb.style.display="none"}}}
 if($("bShare"))$("bShare").onclick=()=>{if(doneCtx)openShare(doneCtx.head,doneCtx.sub)};
 if($("bShareRk"))$("bShareRk").onclick=()=>{if(!state.name){showLogin();return}openShare("Mein Stand 🏆","")};
 if(typeof rrResult==="function"){const _r=rrResult;rrResult=function(){const X=typeof RR!=="undefined"&&RR?RR.x:null,v=typeof RR!=="undefined"&&RR?RR.v:0;
@@ -177,8 +183,9 @@ if(typeof rrResult==="function"){const _r=rrResult;rrResult=function(){const X=t
 // ---------- Gesundheitshinweis beim ersten Start ----------
 function askHealth(){if(ls("hOk",0))return;
   if(!token||!state.name||running||["modal","help","login","sv","rr","rek","shr","legal"].some(i=>$(i)&&getComputedStyle($(i)).display!=="none")){setTimeout(askHealth,3000);return}
+  lsSet("hOk",1);
   ask("🩺 <b>Kurz zur Sicherheit</b><br><span style=\"font-size:14px;line-height:1.5;display:block;margin-top:8px;text-align:left\">CYF ist ein Spaß-Wettbewerb unter Freunden, kein medizinisches Programm. Du trainierst auf eigene Verantwortung.<br><br>• Bluthochdruck, Herzprobleme, Schwangerschaft, Verletzung oder unsicher? Vorher ärztlich abklären.<br>• Beim Halten weiteratmen – nie die Luft anhalten.<br>• Stechender Schmerz, Schwindel oder Druck auf der Brust: sofort aufhören.<br>• Krank? Pause machen. Punkte holst du wieder auf (🔁 Comeback-Mission).</span>",
-   ()=>lsSet("hOk",1),()=>{},"Verstanden","Später")}
+   ()=>{},null,"Verstanden","Schließen")}
 setTimeout(askHealth,2500);
 
 // ---------- Datenschutz & Kontakt ----------
@@ -200,6 +207,15 @@ function openLegal(){let el=$("legal");if(!el){el=document.createElement("div");
 {const acc=$("bAcc");if(acc){const b=document.createElement("button");b.className="wbtn";b.id="bLegal";b.style.cssText="text-align:center;padding:12px";
   b.innerHTML='<b style="font-size:16px;margin:0">📄 Datenschutz &amp; Kontakt</b><span>Was gespeichert wird, wer es sieht, wie du löschen lässt</span>';acc.insertAdjacentElement("afterend",b);b.onclick=openLegal}
  if($("lgLegal"))$("lgLegal").onclick=openLegal}
+
+// Startseite: Gruppenkasten unter den großen Knopf (vor Rekorde)
+{const w=$("whoBox"),n=$("lvlNote");if(w&&n)n.insertAdjacentElement("afterend",w)}
+// Meine Werte: Ergebnis des Fitness-Tests (auf der Startseite verschwindet der Kasten nach dem Test)
+if(typeof pvRender==="function"){const _pv=pvRender;pvRender=function(){_pv.apply(this,arguments);
+  try{let el=$("pvTst");if(!el){el=document.createElement("div");el.id="pvTst";$("pvSum").insertAdjacentElement("afterend",el)}
+    const T=typeof myTst==="function"?myTst():{},d=typeof tstDone==="function"&&(tstDone(T.t0)||tstDone(T.t1));
+    el.innerHTML=d?tstHtml(true):'<div class="card"><h3>📏 Fitness-Test</h3><p class="note" style="margin:0">Noch nicht gemacht. Du findest ihn auf der Startseite – danach steht dein Ergebnis hier.</p></div>';
+    if(d&&typeof tstBind==="function")tstBind(el)}catch(e){console.error(e)}}}
 
 // ---------- Einhängen ----------
 {const _bs=backStep;backStep=function(){
