@@ -445,10 +445,12 @@ function live_(me, q) {
 // ---------- Duelle (Blatt "Duelle") ----------
 // Wer herausfordert, legt vor. Der Gegner hat 24 Std. zum Kontern. Höherer Wert gewinnt, gleicher Wert = unentschieden.
 // Sind beide punktgleich, geht es um +1 Extrapunkt (1× pro Woche pro Paar). Ablehnen geht; beim Punkt-Duell kann man stattdessen einen Münzwurf vorschlagen, dem der Herausforderer zustimmen muss.
-const DU_H = ['id', 'zeit', 'von', 'vonName', 'an', 'anName', 'ex', 'exName', 'art', 'v1', 'v2', 'status', 'sieger', 'extra', 'woche', 'fertig'];
+const DU_H = ['id', 'zeit', 'von', 'vonName', 'an', 'anName', 'ex', 'exName', 'art', 'v1', 'v2', 'status', 'sieger', 'extra', 'woche', 'fertig', 'sspAn', 'sspVon', 'runde'];
+const SSP_ = { s: 'Schere', t: 'Stein', p: 'Papier' }, SSP_WIN_ = { s: 'p', t: 's', p: 't' };
 function duSheet_() {
   const ss = sheet_().getParent(); let s = ss.getSheetByName('Duelle');
   if (!s) { s = ss.insertSheet('Duelle'); s.appendRow(DU_H); s.setFrozenRows(1); }
+  else if (s.getLastColumn() < DU_H.length) s.getRange(1, 1, 1, DU_H.length).setValues([DU_H]);
   return s;
 }
 function duRows_(s) {
@@ -458,6 +460,7 @@ function duRows_(s) {
     o.ms = o.zeit instanceof Date ? o.zeit.getTime() : (Date.parse(o.zeit) || 0);
     if (o.status === 'open' && now - o.ms > 864e5) o.status = 'expired';
     if (o.status === 'coin' && now - o.ms > 2 * 864e5) o.status = 'declined';
+    if (o.status === 'ssp' && now - o.ms > 3 * 864e5) o.status = 'declined';
     return o;
   });
 }
@@ -497,9 +500,23 @@ function duel_(r, rows, sh, q) {
   }
   if (q.do === 'decline') {
     if (d.an !== mk || d.status !== 'open') return { ok: false, err: 'Geht nicht mehr' };
-    const coin = !!q.coin && !!(+d.extra);
-    duSet_(s, d, { status: coin ? 'coin' : 'declined', fertig: new Date() });
-    return { ok: true, coin: coin };
+    const coin = !!q.coin && !!(+d.extra), ssp = !coin && !!(+d.extra) && !!SSP_[q.ssp];
+    duSet_(s, d, ssp ? { status: 'ssp', sspAn: q.ssp, sspVon: '', runde: 1, fertig: new Date() } : { status: coin ? 'coin' : 'declined', fertig: new Date() });
+    return { ok: true, coin: coin, ssp: ssp };
+  }
+  if (q.do === 'ssp') {
+    const isV = d.von === mk, isA = d.an === mk;
+    if ((!isV && !isA) || d.status !== 'ssp') return { ok: false, err: 'Geht nicht mehr' };
+    if (isV && !q.ok) { duSet_(s, d, { status: 'declined' }); return { ok: true }; }
+    if (!SSP_[q.h]) return { ok: false, err: 'Schere, Stein oder Papier wählen' };
+    if ((isV && d.sspVon) || (isA && d.sspAn)) return { ok: false, err: 'Du hast schon gewählt – warte auf den anderen' };
+    const a = isA ? q.h : String(d.sspAn), v = isV ? q.h : String(d.sspVon);
+    if (!a || !v) { duSet_(s, d, isV ? { sspVon: q.h } : { sspAn: q.h }); return { ok: true, wait: true }; }
+    if (a === v) { duSet_(s, d, { sspAn: '', sspVon: '', runde: (+d.runde || 1) + 1 }); return { ok: true, draw: true, h: a }; }
+    const w = SSP_WIN_[v] === a ? d.von : d.an, wn = w === d.von ? d.vonName : d.anName;
+    duSet_(s, d, { sspAn: a, sspVon: v, status: 'sspdone', sieger: wn, fertig: new Date() });
+    duPoint_(sh, rows, w, d.id, t, 'Schere-Stein-Papier-Extrapunkt');
+    return { ok: true, sieger: wn, a: a, v: v };
   }
   if (q.do === 'coin') {
     if (d.von !== mk || d.status !== 'coin') return { ok: false, err: 'Geht nicht mehr' };
@@ -513,7 +530,7 @@ function duel_(r, rows, sh, q) {
 }
 function duelList_() {
   const s = sheet_().getParent().getSheetByName('Duelle'); if (!s) return [];
-  return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra) }));
+  return duRows_(s).slice(-120).map(x => ({ id: String(x.id), z: x.ms, von: String(x.vonName), an: String(x.anName), ex: String(x.ex), exn: String(x.exName), art: String(x.art), v1: +x.v1, v2: x.v2 === '' ? null : +x.v2, st: String(x.status), w: String(x.sieger || ''), tie: !!(+x.extra), sa: x.status === 'sspdone' ? String(x.sspAn) : !!x.sspAn, sv: x.status === 'sspdone' ? String(x.sspVon) : !!x.sspVon, rd: +x.runde || 0 }));
 }
 
 // ---------- Reaktionen & Kommentare auf die Ansage vom Spitzenreiter (Blatt "Reaktionen") ----------

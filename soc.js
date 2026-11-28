@@ -313,9 +313,20 @@ function duAccept(d){const x=duX(d.ex);if(!x){toast("Diese Übung kennt deine Ap
   ask('⚔️ <b>'+E(d.von)+'</b> fordert dich heraus!<br><b>'+E(x.n)+'</b> – vorgelegt: <b>'+E(duV(d.ex,d.v1))+'</b>. Schlag das!'+(d.tie?'<br><span style="color:var(--warn)">Es geht um +1 Extrapunkt.</span>':'')+'<br><span style="font-size:13px;color:var(--mut)">Zeit bis '+new Date(d.z+864e5).toLocaleString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"})+' Uhr</span>',
     ()=>{DUEL={mode:"answer",d,x};rrStart(x)},null,"Annehmen & loslegen","Später")}
 async function duAct(body,ok){try{const r=await api("duel",Object.assign({token},body));if(r.ok){if(ok)ok(r)}else toast(r.err==="unbekannte Aktion"?"Duelle werden gerade freigeschaltet – gleich nochmal":r.err||"Fehler");await loadRank();return r}catch(e){toast("Keine Verbindung");return null}}
-function duDecline(d){if(d.tie)ask("Duell ablehnen?<br><span style=\"font-size:14px\">Es geht um den Extrapunkt. Du kannst stattdessen einen <b>Münzwurf</b> vorschlagen – "+E(d.von)+" muss zustimmen.</span>",
-    ()=>duAct({do:"decline",id:d.id,coin:1},()=>toast("🪙 Münzwurf vorgeschlagen")),()=>duAct({do:"decline",id:d.id},()=>toast("Duell abgelehnt")),"🪙 Münzwurf vorschlagen","Nur ablehnen");
+const SSPI={s:"✂️",t:"🪨",p:"📄"},SSPN={s:"Schere",t:"Stein",p:"Papier"};
+const sspBtns=attr=>'<div class="row" style="gap:8px;margin-top:6px">'+Object.keys(SSPI).map(k=>'<button class="chip" style="font-size:22px;padding:8px 14px" '+attr+'="'+k+'" title="'+SSPN[k]+'">'+SSPI[k]+'</button>').join("")+'</div>';
+function duDecline(d){if(d.tie){const el=duOverlay();
+  el.innerHTML='<div style="max-width:480px;margin:0 auto"><div class="row" style="justify-content:space-between"><h1>Duell ablehnen?</h1><button class="chip" id="duX">✕</button></div><p class="note" style="margin:8px 0 14px">Es geht um den Extrapunkt. Statt zu kämpfen kannst du das Glück entscheiden lassen – <b id="duV"></b> muss zustimmen.</p>'
+   +'<button class="wbtn" id="duCoin" style="text-align:center"><b style="margin:0">🪙 Münzwurf vorschlagen</b><span>50 : 50, entschieden sobald zugestimmt</span></button>'
+   +'<div class="card" style="margin-top:10px"><h3>✂️🪨📄 Schere-Stein-Papier</h3><p class="note" style="margin:0">Wähl jetzt geheim – der andere sieht deine Wahl nicht. Bei Gleichstand geht es in die nächste Runde.</p>'+sspBtns("data-sh")+'</div>'
+   +'<button class="chip" id="duNo" style="margin-top:14px">Nur ablehnen (niemand bekommt den Punkt)</button></div>';
+  $("duV").textContent=d.von;$("duX").onclick=duClose;
+  $("duCoin").onclick=()=>{duClose();duAct({do:"decline",id:d.id,coin:1},()=>toast("🪙 Münzwurf vorgeschlagen"))};
+  $("duNo").onclick=()=>{duClose();duAct({do:"decline",id:d.id},()=>toast("Duell abgelehnt"))};
+  el.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{duClose();duAct({do:"decline",id:d.id,ssp:b.dataset.sh},()=>toast(SSPI[b.dataset.sh]+" gewählt – wartet auf "+d.von))});
+  el.style.display="block";el.scrollTop=0;return}
   else ask("Duell gegen "+E(d.von)+" ablehnen?",()=>duAct({do:"decline",id:d.id},()=>toast("Duell abgelehnt")),null,"Ablehnen","Abbrechen")}
+function duSsp(d,h,ok){duAct({do:"ssp",id:d.id,h,ok:ok?1:0},r=>{if(!ok)return;if(r.wait)toast(SSPI[h]+" gewählt – wartet auf den anderen");else if(r.draw)ask("🤝 Beide "+SSPI[h]+" "+SSPN[h]+" – Unentschieden!<br>Nächste Runde: bitte neu wählen.",()=>{},null,"Ok","Schließen");else{if(r.sieger===state.name)confetti();ask(E(d.von)+": "+SSPI[r.v]+" · "+E(d.an)+": "+SSPI[r.a]+"<br><b style=\"font-size:20px\">"+E(r.sieger)+" gewinnt den Extrapunkt!</b>",()=>{},null,"Ok","Schließen")}})}
 function duCoin(d,ok){duAct({do:"coin",id:d.id,ok:ok?1:0},r=>{if(ok){confetti();ask("🪙 Münzwurf …<br><b style=\"font-size:20px\">"+E(r.sieger)+" gewinnt den Extrapunkt!</b>",()=>{},null,"Ok","Schließen")}})}
 {const _r=rrResult;rrResult=function(){const D0=DUEL,v=RR&&RR.v;_r.apply(this,arguments);if(!D0)return;DUEL=null;if(!v)return;
   const box=$("rrI");if(box)box.insertAdjacentHTML("beforeend",'<br><span id="duRes" style="color:var(--warn)">⚔️ Duell wird übertragen …</span>');
@@ -328,22 +339,26 @@ function renderDuels(){const rl=$("rankList");if(!rl)return;const me=state.name,
   const W=duWins();rl.querySelectorAll(".rk").forEach((el,i)=>{const r=RK[i];if(!r)return;el.querySelectorAll(".dutag").forEach(x=>x.remove());const w=W[r.name];if(!w)return;
     const sm=el.querySelector(".nm small");if(sm)Object.keys(w).forEach(k=>{const t=document.createElement("span");t.className="dutag";t.textContent="⚔️ "+((duX(k)||{}).n||k)+" #"+w[k];sm.after(t)})});
   let card=$("duelCard");if(!card){card=document.createElement("div");card.className="card";card.id="duelCard";const rc=rl.closest(".card");if(rc)rc.after(card);else return}
-  const mine=me?L.filter(d=>d.an===me&&d.st==="open"):[],coin=me?L.filter(d=>d.von===me&&d.st==="coin"):[],wait=me?L.filter(d=>(d.von===me&&d.st==="open")||(d.an===me&&d.st==="coin")):[],done=L.filter(d=>["done","coindone"].includes(d.st)).sort((a,b)=>b.z-a.z).slice(0,6);
+  const mine=me?L.filter(d=>d.an===me&&d.st==="open"):[],coin=me?L.filter(d=>d.von===me&&d.st==="coin"):[],ssp=me?L.filter(d=>d.st==="ssp"&&((d.von===me&&!d.sv)||(d.an===me&&!d.sa))):[],sspW=me?L.filter(d=>d.st==="ssp"&&((d.von===me&&d.sv)||(d.an===me&&d.sa))):[],wait=me?L.filter(d=>(d.von===me&&d.st==="open")||(d.an===me&&d.st==="coin")):[],done=L.filter(d=>["done","coindone","sspdone"].includes(d.st)).sort((a,b)=>b.z-a.z).slice(0,6);
   const line=d=>{const x=duX(d.ex),n=x?x.n:d.exn;return '<b>'+E(d.von)+'</b> ⚔️ <b>'+E(d.an)+'</b> · '+E(n)+(d.tie?' · 🏅 um 1 Punkt':'')};
   let h='<h3>⚔️ Duelle</h3><p class="note" style="margin:-4px 0 8px">Tippe im Ranking auf einen Namen, um ihn herauszufordern.</p>';
   mine.forEach(d=>h+='<div class="dui">🔔 '+line(d)+'<br>Vorgelegt: <b>'+E(duV(d.ex,d.v1))+'</b> – du bist dran!<div class="row"><button class="chip" data-acc="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Annehmen & loslegen</button><button class="chip" data-dec="'+E(d.id)+'">Ablehnen</button></div></div>');
   coin.forEach(d=>h+='<div class="dui">🪙 '+E(d.an)+' schlägt einen Münzwurf um den Extrapunkt vor ('+E((duX(d.ex)||{}).n||d.exn)+').<div class="row"><button class="chip" data-cy="'+E(d.id)+'" style="border-color:var(--acc);color:var(--acc)">Einverstanden – werfen</button><button class="chip" data-cn="'+E(d.id)+'">Nein</button></div></div>');
+  ssp.forEach(d=>h+='<div class="dui">✂️🪨📄 '+(d.von===me?E(d.an)+' will Schere-Stein-Papier um den Extrapunkt ('+E((duX(d.ex)||{}).n||d.exn)+'). Einverstanden? Dann wähl geheim:':'Runde '+d.rd+' Schere-Stein-Papier gegen '+E(d.von)+' – wähl geheim:')+sspBtns('data-sp="'+E(d.id)+'" data-h')+(d.von===me&&d.rd<=1?'<div class="row"><button class="chip" data-sn="'+E(d.id)+'">Nein, kein Glücksspiel</button></div>':'')+'</div>');
+  sspW.forEach(d=>h+='<div class="dui">⏳ Schere-Stein-Papier gegen '+E(d.von===me?d.an:d.von)+' (Runde '+d.rd+') – du hast gewählt, wartet auf die andere Seite.</div>');
   wait.forEach(d=>h+='<div class="dui">⏳ '+line(d)+(d.st==="coin"?'<br>Münzwurf vorgeschlagen – wartet auf '+E(d.von)+'.':'<br>Du hast <b>'+E(duV(d.ex,d.v1))+'</b> vorgelegt – wartet auf '+E(d.an)+'.')+'</div>');
-  done.forEach(d=>h+='<div class="dui">'+(d.w?'🏆 <b>'+E(d.w)+'</b> gewinnt':'🤝 Unentschieden')+' · '+line(d)+(d.st==="coindone"?'<br>per Münzwurf':'<br>'+E(d.von)+': '+E(duV(d.ex,d.v1))+' · '+E(d.an)+': '+E(duV(d.ex,d.v2)))+(me&&d.w&&d.w!==me&&(d.von===me||d.an===me)?'<div class="row"><button class="chip" data-rev="'+E(d.w)+'">🔁 Revanche</button></div>':'')+'</div>');
-  if(!mine.length&&!coin.length&&!wait.length&&!done.length)h+='<p class="note" style="margin:0">Noch keine Duelle. Wer traut sich zuerst?</p>';
+  done.forEach(d=>h+='<div class="dui">'+(d.w?'🏆 <b>'+E(d.w)+'</b> gewinnt':'🤝 Unentschieden')+' · '+line(d)+(d.st==="coindone"?'<br>per Münzwurf':d.st==="sspdone"?'<br>per Schere-Stein-Papier: '+E(d.von)+' '+(SSPI[d.sv]||'')+' · '+E(d.an)+' '+(SSPI[d.sa]||''):'<br>'+E(d.von)+': '+E(duV(d.ex,d.v1))+' · '+E(d.an)+': '+E(duV(d.ex,d.v2)))+(me&&d.w&&d.w!==me&&(d.von===me||d.an===me)?'<div class="row"><button class="chip" data-rev="'+E(d.w)+'">🔁 Revanche</button></div>':'')+'</div>');
+  if(!mine.length&&!coin.length&&!ssp.length&&!sspW.length&&!wait.length&&!done.length)h+='<p class="note" style="margin:0">Noch keine Duelle. Wer traut sich zuerst?</p>';
   card.innerHTML=h;
   card.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>duAccept(L.find(d=>d.id===b.dataset.acc)));
   card.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>duDecline(L.find(d=>d.id===b.dataset.dec)));
   card.querySelectorAll("[data-cy]").forEach(b=>b.onclick=()=>duCoin(L.find(d=>d.id===b.dataset.cy),true));
   card.querySelectorAll("[data-cn]").forEach(b=>b.onclick=()=>duCoin(L.find(d=>d.id===b.dataset.cn),false));
+  card.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>duSsp(L.find(d=>d.id===b.dataset.sp),b.dataset.h,true));
+  card.querySelectorAll("[data-sn]").forEach(b=>b.onclick=()=>duSsp(L.find(d=>d.id===b.dataset.sn),"s",false));
   card.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>openDuel(b.dataset.rev));
   // Startseite: Hinweis + einmaliges Pop-up für neue Herausforderungen
-  const w=$("whoBox");if(w){w.querySelectorAll(".duh").forEach(x=>x.remove());const n=mine.length+coin.length;if(n){const c=w.querySelector(".card")||w;c.insertAdjacentHTML("beforeend",'<p class="duh" style="margin-top:8px;cursor:pointer;color:var(--warn)">⚔️ '+(mine.length?E(mine.map(d=>d.von).join(", "))+" hat dich herausgefordert":"Münzwurf wartet auf dich")+' – im Ranking antworten</p>');
+  const w=$("whoBox");if(w){w.querySelectorAll(".duh").forEach(x=>x.remove());const n=mine.length+coin.length+ssp.length;if(n){const c=w.querySelector(".card")||w;c.insertAdjacentHTML("beforeend",'<p class="duh" style="margin-top:8px;cursor:pointer;color:var(--warn)">⚔️ '+(mine.length?E(mine.map(d=>d.von).join(", "))+" hat dich herausgefordert":ssp.length?"Schere-Stein-Papier wartet auf dich":"Münzwurf wartet auf dich")+' – im Ranking antworten</p>');
     c.querySelector(".duh").onclick=()=>document.querySelector('#menu .tabs button[data-t="rank"]').click()}}
   const nw=mine.find(d=>!duSeen[d.id]&&!ls("duS_"+d.id,0));if(nw&&!running&&!RR&&getComputedStyle($("modal")).display==="none"){duSeen[nw.id]=1;lsSet("duS_"+nw.id,1);duAccept(nw)}}
 
