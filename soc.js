@@ -176,6 +176,8 @@ let doneCtx=null;
     else if(n&&!n.fin&&/nachholen/.test(n.lab)){nb.style.display="block";nb.className="wbtn today";$("bNextT").textContent="Weiter: "+n.lab;$("bNextS").textContent=n.sub;nb.onclick=()=>{$("done").style.display="none";goNext(n)}}
     else nb.style.display="none"}}}
 if($("bShare"))$("bShare").onclick=()=>{if(doneCtx)openShare(doneCtx.head,doneCtx.sub)};
+const invite=()=>{const me=state&&state.name?state.name:"";shareText("💪 "+(me?me+" fordert dich heraus: ":"")+"Mach mit bei der CYF Challenge im Dezember! Tägliche Kurz-Workouts (max. 15 Min., ohne Geräte), Punkte, Ranking mit Freunden – und Preise für Platz 1–3 🏆\nEinfach Link öffnen, Namen + PIN wählen, fertig:\n"+SITE)};
+for(const id of ["bInvM","bInvR"])if($(id))$(id).onclick=invite;
 if($("bShareRk"))$("bShareRk").onclick=()=>{if(!state.name){showLogin();return}openShare("Mein Stand 🏆","")};
 if(typeof rrResult==="function"){const _r=rrResult;rrResult=function(){const X=typeof RR!=="undefined"&&RR?RR.x:null,v=typeof RR!=="undefined"&&RR?RR.v:0;
   _r.apply(this,arguments);
